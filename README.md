@@ -71,3 +71,34 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+---
+
+## Quick Test (ZingLots MVP)
+
+1) Supabase Edge Secrets to set:
+- SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+- STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+- LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL
+- SITE_URL (frontend origin), STRIPE_PLATFORM_FEE_BPS=1200
+
+2) Run migrations (SQL Editor):
+- Paste and run docs/migrations/0001_app_schema.sql
+- Paste and run docs/migrations/0002_end_lot.sql
+- Paste and run docs/migrations/0003_seed_demo.sql
+
+3) Enable:
+- Auth: Email (magic link or password)
+- Storage buckets: lot-photos (public), evidence (private)
+- Realtime: tables app.lots and app.bids
+
+4) Deploy Edge Functions (Dashboard → Edge Functions):
+- livekit-token, stripe-onboard, checkout-create-session, stripe-webhook, shipping-create-label, admin-settle
+
+5) Test flow:
+- Open /qa in two tabs; set a Lot ID; place sample bids; use “Shorten Soft-Close (20s)” to see realtime extend ping
+- End Lot (demo) to generate invoiced order via RPC
+- Call checkout-create-session to pay; webhook marks order paid and creates pending payout
+- Call shipping-create-label to get label URL + tracking; include $1 platform label margin
+- Call admin-settle to transfer payout and mark order settled
+

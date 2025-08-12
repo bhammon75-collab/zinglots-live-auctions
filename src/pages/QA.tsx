@@ -28,6 +28,14 @@ const QA = () => {
     toast({ description: "ends_at set to 20s from now (if you have permission)" });
   };
 
+  const endLotNow = async () => {
+    const sb = getSupabase();
+    if (!sb) return toast({ description: "Supabase not configured" });
+    const { error } = await sb.rpc("app.end_lot", { p_lot: lotId });
+    if (error) return toast({ description: error.message });
+    toast({ description: "Lot ended (if you have permission)" });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -49,6 +57,7 @@ const QA = () => {
           <div className="flex gap-3">
             <Button onClick={placeSampleBid}>Place Sample Bid ($12.34)</Button>
             <Button variant="outline" onClick={shortenSoftClose}>Shorten Soft-Close (20s)</Button>
+            <Button variant="destructive" onClick={endLotNow}>End Lot (demo)</Button>
           </div>
         </div>
 
