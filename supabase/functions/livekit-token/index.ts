@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { AccessToken } from "https://esm.sh/@livekit/server-sdk?target=deno";
+import { create, getNumericDate, Header } from "https://deno.land/x/djwt@v2.9/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -62,16 +62,31 @@ serve(async (req) => {
       if (seller.kyc_status !== 'verified' || !seller.stripe_account_id) return new Response(JSON.stringify({ error: 'Seller not verified/onboarded' }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
     }
 
-    const at = new AccessToken(apiKey, apiSecret, { identity, ttl: 60 * 10 });
-    at.addGrant({
-      room: roomId,
-      roomJoin: true,
-      roomCreate: isHost === true,
-      canPublish: isHost === true,
-      canSubscribe: true,
-    } as any);
-
-    const tokenJwt = await at.toJwt();
+    // Build LiveKit-compatible JWT without SDK
+    const header: Header = { alg: "HS256", typ: "JWT" };
+    const payload = {
+      iss: apiKey,
+      sub: identity,
+      nbf: getNumericDate(-10),
+      exp: getNumericDate(60 * 10),
+      grants: {
+        video: {
+          room: roomId,
+          roomJoin: true,
+          roomCreate: isHost === true,
+          canPublish: isHost === true,
+          canSubscribe: true,
+        },
+      },
+    };
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(apiSecret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const tokenJwt = await create(header, payload, key);
 
     return new Response(JSON.stringify({ url, token: tokenJwt }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
