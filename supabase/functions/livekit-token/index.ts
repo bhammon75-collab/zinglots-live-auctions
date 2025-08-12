@@ -14,7 +14,7 @@ serve(async (req) => {
 
   // Temporary stub to unblock deployments; replace with real implementation when ready
   return new Response(
-    JSON.stringify({ error: "livekit-token temporarily disabled; no external deps required" }),
-    { status: 501, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    JSON.stringify({ url: null, token: null, stub: true }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
 });
