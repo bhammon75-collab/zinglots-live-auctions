@@ -16,7 +16,7 @@ serve(async (req) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      { auth: { persistSession: false }, db: { schema: 'app' } }
     );
 
     // Create a tiny pseudo-PDF file in evidence bucket
@@ -42,7 +42,7 @@ serve(async (req) => {
 
     // Persist on order
     const { error: updErr } = await supabase
-      .from('app.orders')
+      .from('orders')
       .update({
         shipping_cents: resp.costCents,
         shipping_tracking: resp.trackingNumber,

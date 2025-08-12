@@ -26,8 +26,9 @@ serve(async (req) => {
     const supabaseUser = createClient(supabaseUrl, anonKey, {
       auth: { persistSession: false },
       global: { headers: { Authorization: `Bearer ${token}` } },
+      db: { schema: 'app' },
     });
-    const supabaseAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false }, db: { schema: 'app' } });
 
     // Validate token
     const { error: uErr } = await supabaseUser.auth.getUser();
@@ -37,7 +38,7 @@ serve(async (req) => {
 
     // Get payout and seller (service role client for RLS-bypassed reads/writes)
     const { data: payout, error: pErr } = await supabaseAdmin
-      .from('app.payouts')
+      .from('payouts')
       .select('order_id, amount, status, seller_id')
       .eq('order_id', orderId)
       .single();
@@ -45,7 +46,7 @@ serve(async (req) => {
     if (payout.status !== 'pending') throw new Error('Payout not pending');
 
     const { data: seller, error: sErr } = await supabaseAdmin
-      .from('app.sellers')
+      .from('sellers')
       .select('stripe_account_id')
       .eq('id', payout.seller_id)
       .single();
@@ -61,8 +62,8 @@ serve(async (req) => {
       description: `ZingLots order ${orderId}`,
     });
 
-    await supabaseAdmin.from('app.payouts').update({ status: 'transferred', stripe_transfer_id: transfer.id }).eq('order_id', orderId);
-    await supabaseAdmin.from('app.orders').update({ status: 'settled' }).eq('id', orderId);
+    await supabaseAdmin.from('payouts').update({ status: 'transferred', stripe_transfer_id: transfer.id }).eq('order_id', orderId);
+    await supabaseAdmin.from('orders').update({ status: 'settled' }).eq('id', orderId);
 
     return new Response(JSON.stringify({ transferId: transfer.id, amount: amountCents }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -23,7 +23,7 @@ const QA = () => {
   const shortenSoftClose = async () => {
     const sb = getSupabase();
     if (!sb) return toast({ description: "Supabase not configured" });
-    const { error } = await sb.from("app.lots").update({ ends_at: new Date(Date.now() + 20_000).toISOString() }).eq("id", lotId);
+    const { error } = await sb.from("lots").update({ ends_at: new Date(Date.now() + 20_000).toISOString() }).eq("id", lotId);
     if (error) return toast({ description: error.message });
     toast({ description: "ends_at set to 20s from now (if you have permission)" });
   };

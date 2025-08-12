@@ -33,7 +33,7 @@ const DashboardSeller = () => {
         const uid = u.user?.id;
         if (!uid) { setSellerInfo(null); setLoading(false); return; }
         const { data, error } = await sb
-          .from('app.sellers')
+          .from('sellers')
           .select('kyc_status, stripe_account_id')
           .eq('id', uid)
           .maybeSingle();
@@ -44,7 +44,7 @@ const DashboardSeller = () => {
 
         // Attempt to fetch paid orders for this seller (allowed if admin via RLS policy)
         const { data: orders } = await sb
-          .from('app.orders')
+          .from('orders')
           .select('id, status, subtotal, fees_bps, shipping_cents, shipping_tracking, shipping_carrier, label_url, lot_id')
           .eq('status', 'paid');
         setPaidOrders(((orders as any) || []));
@@ -88,7 +88,7 @@ const DashboardSeller = () => {
     if (!error) {
       // Refresh list
       const { data: orders } = await sb
-        .from('app.orders')
+        .from('orders')
         .select('id, status, subtotal, fees_bps, shipping_cents, shipping_tracking, shipping_carrier, label_url, lot_id')
         .eq('status', 'paid');
       setPaidOrders(((orders as any) || []));

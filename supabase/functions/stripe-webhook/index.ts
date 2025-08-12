@@ -15,7 +15,7 @@ serve(async (req) => {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
+    { auth: { persistSession: false }, db: { schema: 'app' } }
   );
 
   try {
@@ -30,7 +30,7 @@ serve(async (req) => {
       if (orderId) {
         // Fetch order
         const { data: order, error: oErr } = await supabase
-          .from("app.orders")
+          .from("orders")
           .select("id, subtotal, fees_bps, lot_id")
           .eq("id", orderId)
           .single();
@@ -41,27 +41,27 @@ serve(async (req) => {
         const platformFee = Math.round((amountDollars * feeBps) / 10000 * 100) / 100; // 2 decimals
         const sellerAmount = Math.max(0, Math.round((amountDollars - platformFee) * 100) / 100);
 
-        await supabase.from("app.orders").update({
+        await supabase.from("orders").update({
           status: 'paid',
           stripe_payment_intent: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id,
         }).eq("id", orderId);
 
         // Find seller for this lot (two-step to avoid relationship naming issues)
         const { data: lot, error: lErr } = await supabase
-          .from('app.lots')
+          .from('lots')
           .select('show_id')
           .eq('id', order.lot_id)
           .single();
         if (lErr) throw new Error(`Lot fetch error: ${lErr.message}`);
         const { data: show, error: sErr } = await supabase
-          .from('app.shows')
+          .from('shows')
           .select('seller_id')
           .eq('id', lot.show_id)
           .single();
         if (sErr) throw new Error(`Show fetch error: ${sErr.message}`);
 
         // Upsert payout row as pending
-        await supabase.from("app.payouts").upsert({
+        await supabase.from("payouts").upsert({
           order_id: orderId,
           seller_id: show.seller_id,
           amount: sellerAmount,

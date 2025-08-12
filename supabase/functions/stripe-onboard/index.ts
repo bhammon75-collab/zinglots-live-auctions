@@ -20,8 +20,8 @@ serve(async (req) => {
     const siteUrl = Deno.env.get("SITE_URL") ?? "https://example.com";
     if (!supabaseUrl || !serviceKey) throw new Error("Supabase credentials missing");
 
-    const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-    const supabaseAuth = createClient(supabaseUrl, anonKey);
+    const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false }, db: { schema: 'app' } });
+    const supabaseAuth = createClient(supabaseUrl, anonKey, { db: { schema: 'app' } });
 
     // Auth: must be the owner of the seller row (or admin)
     const authHeader = req.headers.get("Authorization");
@@ -40,7 +40,7 @@ serve(async (req) => {
 
     // Ensure seller exists
     const { data: seller, error: sellerErr } = await supabase
-      .from("app.sellers")
+      .from("sellers")
       .select("id, stripe_account_id, kyc_status")
       .eq("id", sellerId)
       .single();
@@ -50,7 +50,7 @@ serve(async (req) => {
     if (!accountId) {
       const acct = await stripe.accounts.create({ type: "express", capabilities: { transfers: { requested: true } } });
       accountId = acct.id;
-      await supabase.from("app.sellers").update({ stripe_account_id: accountId }).eq("id", sellerId);
+      await supabase.from("sellers").update({ stripe_account_id: accountId }).eq("id", sellerId);
     }
 
     const link = await stripe.accountLinks.create({

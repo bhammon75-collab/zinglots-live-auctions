@@ -24,11 +24,12 @@ serve(async (req) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      { auth: { persistSession: false }, db: { schema: 'app' } }
     );
     const anon = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { db: { schema: 'app' } }
     );
 
     // Require signed in user
@@ -42,7 +43,7 @@ serve(async (req) => {
     // roomId = show_<uuid>; fetch show
     const showId = roomId.replace(/^show_/, "");
     const { data: show, error: sErr } = await supabase
-      .from('app.shows')
+      .from('shows')
       .select('id, seller_id')
       .eq('id', showId)
       .single();
@@ -51,7 +52,7 @@ serve(async (req) => {
     if (isHost) {
       // Host must be the seller of the show and verified + onboarded
       const { data: seller, error: selErr } = await supabase
-        .from('app.sellers')
+        .from('sellers')
         .select('id, kyc_status, stripe_account_id')
         .eq('id', show.seller_id)
         .single();

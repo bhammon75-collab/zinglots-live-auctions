@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-let client: SupabaseClient | null = null;
+let client: SupabaseClient<any, "app"> | null = null;
 
 function resolveKeys() {
   const w = window as any;
@@ -16,7 +16,7 @@ export function getSupabase(): SupabaseClient | null {
     console.warn('Supabase not configured. Set project Supabase integration to enable backend features.');
     return null;
   }
-  client = createClient(url, anon, { auth: { persistSession: true } });
+  client = createClient(url, anon, { auth: { persistSession: true }, db: { schema: 'app' }, global: { headers: { 'Accept-Profile': 'app' } } });
   return client;
 }
 

@@ -18,8 +18,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const supabaseAuth = createClient(supabaseUrl, anonKey);
-    const supabaseAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+    const supabaseAuth = createClient(supabaseUrl, anonKey, { auth: { persistSession: false }, db: { schema: 'app' } });
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false }, db: { schema: 'app' } });
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 });
@@ -27,7 +27,7 @@ serve(async (req) => {
     const { data: userData, error: userErr } = await supabaseAuth.auth.getUser(token);
     if (userErr) return new Response(JSON.stringify({ error: userErr.message }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 });
 
-    const { data: order, error: oErr } = await supabaseAdmin.from('app.orders').select('id, buyer_id').eq('id', orderId).single();
+    const { data: order, error: oErr } = await supabaseAdmin.from('orders').select('id, buyer_id').eq('id', orderId).single();
     if (oErr) return new Response(JSON.stringify({ error: `Order not found: ${oErr.message}` }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 });
     if (order.buyer_id !== userData.user?.id) return new Response(JSON.stringify({ error: "Forbidden" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
 
