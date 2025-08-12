@@ -12,8 +12,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { orderId, amountCents, feeBps, successUrl, cancelUrl } = await req.json();
-    if (!orderId || !amountCents) throw new Error("orderId and amountCents are required");
+    const { orderId, successUrl, cancelUrl } = await req.json();
+    if (!orderId) throw new Error("orderId is required");
 
     // Auth: must be the buyer of the order
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -28,9 +28,16 @@ serve(async (req) => {
     const { data: userData, error: userErr } = await supabaseAuth.auth.getUser(token);
     if (userErr) return new Response(JSON.stringify({ error: userErr.message }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 });
 
-    const { data: order, error: oErr } = await supabaseAdmin.from('orders').select('id, buyer_id').eq('id', orderId).single();
+    const { data: order, error: oErr } = await supabaseAdmin.from('orders').select('id, buyer_id, subtotal, fees_bps, shipping_cents').eq('id', orderId).single();
     if (oErr) return new Response(JSON.stringify({ error: `Order not found: ${oErr.message}` }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 });
     if (order.buyer_id !== userData.user?.id) return new Response(JSON.stringify({ error: "Forbidden" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
+
+    // Compute total cents and platform fee cents
+    const subtotalCents = Math.round(Number(order.subtotal) * 100);
+    const shippingCents = Number(order.shipping_cents || 0);
+    const totalCents = subtotalCents + shippingCents;
+    const envBps = Number(Deno.env.get('STRIPE_PLATFORM_FEE_BPS') || order.fees_bps || 1200);
+    const platformFeeCents = Math.round((totalCents * envBps) / 10000);
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2023-10-16" });
     const siteUrl = Deno.env.get("SITE_URL") ?? "https://example.com";
@@ -42,7 +49,7 @@ serve(async (req) => {
           price_data: {
             currency: "usd",
             product_data: { name: "ZingLots Order" },
-            unit_amount: amountCents,
+            unit_amount: totalCents,
           },
           quantity: 1,
         },
@@ -51,7 +58,11 @@ serve(async (req) => {
       cancel_url: cancelUrl || `${siteUrl}/cancel?order=${orderId}`,
       metadata: {
         orderId,
-        feeBps: String(feeBps ?? Deno.env.get("STRIPE_PLATFORM_FEE_BPS") ?? 1200),
+        totalCents: String(totalCents),
+        platformFeeCents: String(platformFeeCents),
+      },
+      payment_intent_data: {
+        transfer_group: `order_${orderId}`,
       },
     });
 
@@ -60,7 +71,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });

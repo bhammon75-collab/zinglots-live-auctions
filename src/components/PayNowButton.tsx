@@ -13,7 +13,7 @@ export function PayNowButton({ orderId, subtotal, feesBps = 1200 }: { orderId: s
       const sb = getSupabase();
       if (!sb) return toast({ description: "Supabase not configured" });
       const { data, error } = await sb.functions.invoke('checkout-create-session', {
-        body: { orderId, amountCents, feeBps: feesBps },
+        body: { orderId },
       });
       if (error) throw error;
       const url = (data as any)?.url;

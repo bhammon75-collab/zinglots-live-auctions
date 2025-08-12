@@ -32,22 +32,22 @@ serve(async (req) => {
         // Fetch order
         const { data: order, error: oErr } = await supabase
           .from("orders")
-          .select("id, subtotal, fees_bps, lot_id")
+          .select("id, subtotal, fees_bps, shipping_cents, lot_id")
           .eq("id", orderId)
           .single();
         if (oErr) throw new Error(`Order fetch error: ${oErr.message}`);
 
-        const amountDollars = Number(order.subtotal ?? 0);
-        const feeBps = Number(order.fees_bps ?? 1200);
-        const platformFee = Math.round((amountDollars * feeBps) / 10000 * 100) / 100; // 2 decimals
-        const sellerAmount = Math.max(0, Math.round((amountDollars - platformFee) * 100) / 100);
+        // Prefer cents from metadata to avoid rounding issues
+        const totalCents = Number(session.metadata?.totalCents || Math.round(Number(order.subtotal) * 100) + Number(order.shipping_cents || 0));
+        const platformFeeCents = Number(session.metadata?.platformFeeCents || Math.round((totalCents * Number(order.fees_bps || 1200)) / 10000));
+        const sellerCents = Math.max(0, totalCents - platformFeeCents);
 
         await supabase.from("orders").update({
           status: 'paid',
           stripe_payment_intent: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id,
         }).eq("id", orderId);
 
-        // Find seller for this lot (two-step to avoid relationship naming issues)
+        // Find seller for this lot
         const { data: lot, error: lErr } = await supabase
           .from('lots')
           .select('show_id')
@@ -61,14 +61,21 @@ serve(async (req) => {
           .single();
         if (sErr) throw new Error(`Show fetch error: ${sErr.message}`);
 
-        // Upsert payout row as pending
+        // Upsert payout row as pending (store dollars with 2 decimals)
         await supabase.from("payouts").upsert({
           order_id: orderId,
           seller_id: show.seller_id,
-          amount: sellerAmount,
+          amount: sellerCents / 100,
           status: 'pending',
           created_at: new Date().toISOString(),
         }, { onConflict: 'order_id' });
+      }
+    } else if (event.type === 'charge.refunded') {
+      const charge = event.data.object as any;
+      // Try to locate by payment_intent
+      const pi = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id;
+      if (pi) {
+        await supabase.from('orders').update({ status: 'refunded' }).eq('stripe_payment_intent', pi);
       }
     }
 

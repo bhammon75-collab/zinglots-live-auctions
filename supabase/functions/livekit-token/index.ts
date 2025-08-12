@@ -62,7 +62,7 @@ serve(async (req) => {
       if (seller.kyc_status !== 'verified' || !seller.stripe_account_id) return new Response(JSON.stringify({ error: 'Seller not verified/onboarded' }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
     }
 
-    const at = new AccessToken(apiKey, apiSecret, { identity, ttl: 60 * 60 });
+    const at = new AccessToken(apiKey, apiSecret, { identity, ttl: 60 * 10 });
     at.addGrant({
       room: roomId,
       roomJoin: true,
