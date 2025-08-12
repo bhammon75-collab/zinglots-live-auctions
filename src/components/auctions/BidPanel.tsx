@@ -39,14 +39,29 @@ export default function BidPanel({ lot, auction, userTier, isSeller, isAdmin }: 
   const [max, setMax] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [verifyOpen, setVerifyOpen] = useState(false);
+  const [uid, setUid] = useState<string | null>(null);
+  const lastClickRef = useRef<number>(0);
+  const wasLeadingRef = useRef<boolean>(false);
 
   const realtime = useLotRealtime(lot.id);
+
+  useEffect(() => {
+    if (!sb) return;
+    sb.auth.getUser()
+      .then(({ data }) => setUid(data?.user?.id ?? null))
+      .catch(() => setUid(null));
+  }, [sb]);
 
   const currentPrice = useMemo(() => {
     return (realtime.topBid ?? lot.current_price ?? null) ?? null;
   }, [realtime.topBid, lot.current_price]);
 
   const minNext = useMemo(() => nextMinimum(currentPrice, lot.starting_bid), [currentPrice, lot.starting_bid]);
+
+  const isLeading = useMemo(() => {
+    const high = realtime.highBidderId ?? lot.high_bidder ?? null;
+    return !!(high && uid && high === uid);
+  }, [realtime.highBidderId, lot.high_bidder, uid]);
 
   // Countdown
   const [remaining, setRemaining] = useState<string>("");
@@ -80,11 +95,22 @@ export default function BidPanel({ lot, auction, userTier, isSeller, isAdmin }: 
     lastEndsRef.current = nowEnds;
   }, [realtime.endsAt, auction.soft_close_secs, auction.ends_at, toast]);
 
+  useEffect(() => {
+    if (!uid) return;
+    const leading = isLeading;
+    if (wasLeadingRef.current && !leading && realtime.highBidderId) {
+      toast({ description: "You've been outbid" });
+    }
+    wasLeadingRef.current = leading;
+  }, [isLeading, realtime.highBidderId, uid, toast]);
+
   const isEnded = useMemo(() => new Date(realtime.endsAt ?? auction.ends_at).getTime() <= Date.now(), [realtime.endsAt, auction.ends_at]);
 
   const onSubmit = async () => {
+    const now = Date.now();
+    if (now - (lastClickRef.current || 0) < 300) return;
+    lastClickRef.current = now;
     if (!sb) return toast({ description: "Supabase not configured" });
-    if (isSeller) return;
     const offerNum = Number(offered);
     const maxNum = max ? Number(max) : null;
     if (!Number.isFinite(offerNum) || offerNum <= 0) {
@@ -133,15 +159,20 @@ export default function BidPanel({ lot, auction, userTier, isSeller, isAdmin }: 
   const downloadCsv = async () => {
     if (!sb) return;
     try {
-      const { data, error } = await sb.functions.invoke('bids-csv', { body: { lotId: lot.id } });
-      if (error) return toast({ description: error.message });
-      const csv = (data as any)?.csv as string;
-      if (!csv) return toast({ description: 'No data to export' });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const { data: sess } = await sb.auth.getSession();
+      const token = sess?.session?.access_token;
+      const fnUrl = `https://huebxglhbenulbcftzdq.functions.supabase.co/bids-csv?lot_id=${encodeURIComponent(lot.id)}`;
+      const res = await fetch(fnUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (res.status === 401) return toast({ description: 'Unauthorized' });
+      if (res.status === 403) return toast({ description: 'Forbidden' });
+      if (!res.ok) return toast({ description: `Export failed (${res.status})` });
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const d = new Date().toISOString().slice(0,10);
+      const d = new Date().toISOString().slice(0,10).replace(/-/g, '');
       a.download = `bids_${lot.id}_${d}.csv`;
       a.click();
       URL.revokeObjectURL(url);
@@ -163,6 +194,7 @@ export default function BidPanel({ lot, auction, userTier, isSeller, isAdmin }: 
         <div className="space-y-1">
           <div className="text-xs text-muted-foreground">Current</div>
           <div className="text-2xl font-semibold">{formatUSD(currentPrice ?? lot.starting_bid)}</div>
+          {isLeading && <div className="text-xs"><Badge variant="secondary">You're leading</Badge></div>}
           <div className="text-xs text-muted-foreground">Next minimum: {formatUSD(minNext)}</div>
         </div>
         <div className="justify-self-end text-right">
@@ -174,13 +206,51 @@ export default function BidPanel({ lot, auction, userTier, isSeller, isAdmin }: 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <label htmlFor="offered" className="text-xs text-muted-foreground">Offered</label>
-          <Input id="offered" inputMode="decimal" placeholder={`Enter ≥ ${formatUSD(minNext)}`} value={offered}
-            onChange={(e) => setOffered(e.target.value)} aria-label="Offered amount" />
+          <Input
+            id="offered"
+            inputMode="decimal"
+            placeholder={`Enter ≥ ${formatUSD(minNext)}`}
+            value={offered}
+            onChange={(e) => {
+              const v = e.target.value.replace(/[^0-9.]/g, '');
+              const i = v.indexOf('.');
+              const clean = i >= 0 ? v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, 2) : v;
+              setOffered(clean);
+            }}
+            onPaste={(e) => {
+              e.preventDefault();
+              const t = e.clipboardData.getData('text') || '';
+              const v = t.replace(/[^0-9.]/g, '');
+              const i = v.indexOf('.');
+              const clean = i >= 0 ? v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, 2) : v;
+              setOffered(clean);
+            }}
+            aria-label="Offered amount"
+          />
         </div>
         <div className="space-y-1">
           <label htmlFor="max" className="text-xs text-muted-foreground">Max bid (optional)</label>
-          <Input id="max" inputMode="decimal" placeholder="Proxy cap" value={max}
-            onChange={(e) => setMax(e.target.value)} aria-label="Maximum bid cap" />
+          <Input
+            id="max"
+            inputMode="decimal"
+            placeholder="Proxy cap"
+            value={max}
+            onChange={(e) => {
+              const v = e.target.value.replace(/[^0-9.]/g, '');
+              const i = v.indexOf('.');
+              const clean = i >= 0 ? v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, 2) : v;
+              setMax(clean);
+            }}
+            onPaste={(e) => {
+              e.preventDefault();
+              const t = e.clipboardData.getData('text') || '';
+              const v = t.replace(/[^0-9.]/g, '');
+              const i = v.indexOf('.');
+              const clean = i >= 0 ? v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, 2) : v;
+              setMax(clean);
+            }}
+            aria-label="Maximum bid cap"
+          />
         </div>
       </div>
 

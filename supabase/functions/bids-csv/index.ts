@@ -37,7 +37,7 @@ export const handler = async (req: Request): Promise<Response> => {
         headers: {
           ...corsHeaders,
           "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition": `attachment; filename="bids_${lotId}_${new Date().toISOString().slice(0,10)}.csv"`,
+          "Content-Disposition": `attachment; filename="bids_${lotId}_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv"`,
         },
       });
     }
