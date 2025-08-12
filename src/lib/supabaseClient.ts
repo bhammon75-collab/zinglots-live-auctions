@@ -9,7 +9,7 @@ function resolveKeys() {
   return { url, anon } as { url?: string; anon?: string };
 }
 
-export function getSupabase(): SupabaseClient | null {
+export function getSupabase(): SupabaseClient<any, "app"> | null {
   if (client) return client;
   const { url, anon } = resolveKeys();
   if (!url || !anon) {
