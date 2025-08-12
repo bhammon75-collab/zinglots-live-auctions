@@ -15,6 +15,14 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Ensure a profile row exists for the authenticated user
+  const ensureProfile = async (sb: ReturnType<typeof getSupabase>, uid: string, email: string) => {
+    try {
+      const handle = email.split('@')[0];
+      await sb!.from('profiles').upsert({ id: uid, handle, display_name: handle }, { onConflict: 'id' });
+    } catch {}
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const sb = getSupabase();
@@ -28,6 +36,9 @@ const Login = () => {
           options: { emailRedirectTo: `${window.location.origin}/dashboard/buyer` },
         });
         if (error) throw error;
+        if (data.user) {
+          await ensureProfile(sb, data.user.id, email);
+        }
         if (data.session) {
           navigate("/dashboard/buyer");
         } else {
@@ -36,6 +47,9 @@ const Login = () => {
       } else {
         const { data, error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (data.user) {
+          await ensureProfile(sb, data.user.id, email);
+        }
         if (data.session) navigate("/dashboard/buyer");
       }
     } catch (err: any) {
