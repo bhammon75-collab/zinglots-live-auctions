@@ -20,7 +20,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      place_bid: {
+        Args: { lot_id: string; offered: number; max: number }
+        Returns: Json
+      }
+      public_bids_for_csv: {
+        Args: { p_lot_id: string }
+        Returns: {
+          created_at: string
+          alias: string
+          amount: number
+          is_proxy: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

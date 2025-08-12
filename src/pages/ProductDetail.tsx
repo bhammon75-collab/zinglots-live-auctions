@@ -78,7 +78,7 @@ const ProductDetail = () => {
           <h1 className="text-3xl font-bold">{lot.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">Category: {lot.category}</p>
           <div className="mt-6">
-            <BidPanel lot={bidPanelLot} auction={bidPanelAuction} userTier={userTier} isSeller={isSeller} />
+            <BidPanel lot={bidPanelLot} auction={bidPanelAuction} userTier={userTier} isSeller={isSeller} isAdmin={false} />
           </div>
 
 

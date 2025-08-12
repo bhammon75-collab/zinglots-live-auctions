@@ -25,13 +25,14 @@ export type BidPanelProps = {
   };
   userTier: { tier: 0 | 1 | 2; cap?: number | null };
   isSeller: boolean;
+  isAdmin?: boolean;
 };
 
 function formatUSD(n: number) {
   return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
-export default function BidPanel({ lot, auction, userTier, isSeller }: BidPanelProps) {
+export default function BidPanel({ lot, auction, userTier, isSeller, isAdmin }: BidPanelProps) {
   const sb = getSupabase();
   const { toast } = useToast();
   const [offered, setOffered] = useState<string>("");
@@ -99,23 +100,22 @@ export default function BidPanel({ lot, auction, userTier, isSeller }: BidPanelP
 
     try {
       setSubmitting(true);
-      const { data: userRes } = await sb.auth.getUser();
-      const uid = userRes?.user?.id;
-      if (!uid) throw new Error("Please sign in to bid");
+      // Round to 2 decimals and guard inputs
+      const round2 = (n: number) => Math.round(n * 100) / 100;
+      const offered2 = round2(offerNum);
+      const max2 = max !== '' && maxNum != null ? round2(maxNum) : null;
 
-      // Our RPC expects p_lot, p_bidder, p_amount (proxy max)
-      const { error } = await sb.rpc("app.place_bid", {
-        p_lot: lot.id,
-        p_bidder: uid,
-        p_amount: consider,
+      const { error } = await sb.rpc('app.place_bid', {
+        lot_id: lot.id,
+        offered: offered2,
+        max: max2,
       });
       if (error) {
-        const msg = error.message || "Bid failed";
-        // Parse minimum requirement pattern if present
-        const m = msg.match(/Minimum acceptable is\s*\$?(\d+(?:\.\d+)?)/i);
+        const msg = error.message || 'Bid failed';
+        const m = msg.match(/Bid must be [≥>=]\s*\$?(\d+(?:\.\d+)?)/i) || msg.match(/Minimum acceptable is\s*\$?(\d+(?:\.\d+)?)/i);
         if (m) {
           toast({ description: `Minimum acceptable is ${formatUSD(Number(m[1]))}` });
-        } else if (/tier|cap|verify/i.test(msg)) {
+        } else if (/tier|cap|verify|limit/i.test(msg)) {
           setVerifyOpen(true);
         } else {
           toast({ description: msg });
@@ -124,7 +124,7 @@ export default function BidPanel({ lot, auction, userTier, isSeller }: BidPanelP
       }
       setOffered("");
       setMax("");
-      toast({ description: `Bid placed: up to ${formatUSD(consider)}` });
+      toast({ description: `Bid placed: up to ${formatUSD(max2 ?? offered2)}` });
     } finally {
       setSubmitting(false);
     }
@@ -132,27 +132,22 @@ export default function BidPanel({ lot, auction, userTier, isSeller }: BidPanelP
 
   const downloadCsv = async () => {
     if (!sb) return;
-    // Seller-only; fetch anonymized history from view
-    const { data, error } = await sb
-      .schema('app')
-      .from('bid_history')
-      .select('created_at, amount, is_proxy, lot_id, bidder_alias')
-      .eq('lot_id', lot.id)
-      .order('created_at', { ascending: true });
-    if (error) return toast({ description: error.message });
-    const rows = data as any[];
-    const header = ['created_at','alias','amount','is_proxy'];
-    const csv = [header.join(',')]
-      .concat(rows.map(r => `${new Date(r.created_at).toISOString()},${r.bidder_alias},${r.amount},${r.is_proxy ? 'yes':'no'}`))
-      .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const d = new Date().toISOString().slice(0,10);
-    a.download = `bids_${lot.id}_${d}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const { data, error } = await sb.functions.invoke('bids-csv', { body: { lotId: lot.id } });
+      if (error) return toast({ description: error.message });
+      const csv = (data as any)?.csv as string;
+      if (!csv) return toast({ description: 'No data to export' });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const d = new Date().toISOString().slice(0,10);
+      a.download = `bids_${lot.id}_${d}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e:any) {
+      toast({ description: e.message || 'Export failed' });
+    }
   };
 
   return (
@@ -193,7 +188,7 @@ export default function BidPanel({ lot, auction, userTier, isSeller }: BidPanelP
         <Button onClick={onSubmit} disabled={isSeller || isEnded || submitting} aria-busy={submitting}>
           {isEnded ? 'Auction ended' : isSeller ? 'Sellers cannot bid' : submitting ? 'Submitting…' : 'Place bid'}
         </Button>
-        {isSeller && (
+        {(isSeller || !!isAdmin) && (
           <Button variant="outline" onClick={downloadCsv}>Download bid history (CSV)</Button>
         )}
         <div className="ml-auto text-xs text-muted-foreground">Earlier max wins. Auto-bids in minimum increments.</div>
