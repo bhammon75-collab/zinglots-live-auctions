@@ -1,25 +1,13 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { type SupabaseClient } from '@supabase/supabase-js';
+import { supabase as sharedClient } from '@/integrations/supabase/client';
 
-let client: SupabaseClient<any, "app"> | null = null;
+let client: SupabaseClient<any, 'app'> | null = null;
 
-function resolveKeys() {
-  const url = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
-  const anon = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string | undefined;
-  return { url, anon } as { url?: string; anon?: string };
-}
-
-export function getSupabase(): SupabaseClient<any, "app"> | null {
-  if (client) return client;
-  const { url, anon } = resolveKeys();
-  if (!url || !anon) {
-    console.warn('Supabase not configured. Set project Supabase integration to enable backend features.');
-    return null;
+export function getSupabase(): SupabaseClient<any, 'app'> | null {
+  // Reuse the shared client and ensure single instance
+  if (!client) {
+    client = sharedClient as unknown as SupabaseClient<any, 'app'>;
   }
-  client = createClient(url, anon, {
-    auth: { persistSession: true },
-    db: { schema: 'app' },
-    global: { headers: { 'Accept-Profile': 'app' } },
-  });
   return client;
 }
 
