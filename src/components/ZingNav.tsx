@@ -19,7 +19,7 @@ const ZingNav = () => {
             >
               Z
             </div>
-            <span className="text-lg font-extrabold tracking-tight">ZingLots</span>
+            <span className="text-lg font-extrabold tracking-tight">ingLots</span>
           </Link>
         </div>
 
