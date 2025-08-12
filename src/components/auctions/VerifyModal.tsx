@@ -11,7 +11,7 @@ export type VerifyModalProps = {
 export function VerifyModal({ open, onOpenChange, onStripeIdentity, onManualUpload }: VerifyModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent data-testid="verify-modal">
         <DialogHeader>
           <DialogTitle>Increase your bidding limit</DialogTitle>
           <DialogDescription>
