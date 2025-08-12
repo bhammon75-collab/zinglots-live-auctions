@@ -1,25 +1,32 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts"; // Polyfill fetch for Stripe in Deno
+import "https://deno.land/x/xhr@0.1.0/mod.ts"; // Stripe needs fetch in Deno
 import Stripe from "https://esm.sh/stripe@14.21.0";
 
-// Strict CORS per requirements
-const corsHeaders = {
+// CORS headers required on ALL responses
+const baseCorsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const json = (body: unknown, status = 200, extraHeaders: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...baseCorsHeaders, ...extraHeaders },
+  });
+
 serve(async (req) => {
-  // CORS preflight
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    const requested = req.headers.get("Access-Control-Request-Headers") || baseCorsHeaders["Access-Control-Allow-Headers"];
+    return new Response(null, {
+      status: 200,
+      headers: { ...baseCorsHeaders, "Access-Control-Allow-Headers": requested, "Access-Control-Max-Age": "86400" },
+    });
   }
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: "Method not allowed" }, 405);
   }
 
   try {
@@ -28,38 +35,38 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     if (!siteUrl) throw new Error("SITE_URL is not set");
 
-    const { sellerId } = await req.json();
+    let payload: any = {};
+    try {
+      payload = await req.json();
+    } catch (_) {
+      return json({ error: "Invalid JSON body" }, 400);
+    }
+
+    const { sellerId } = payload || {};
     if (!sellerId || typeof sellerId !== "string") {
-      throw new Error("sellerId is required (string)");
+      return json({ error: "sellerId is required (string)" }, 400);
     }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 
-    // Create a Stripe Connect Express account
+    console.log("[stripe-onboard] Creating express account for seller", sellerId);
     const account = await stripe.accounts.create({
       type: "express",
-      // Optional: store reference
       metadata: { sellerId },
     });
 
-    // Generate an onboarding account link
-    const accountLink = await stripe.accountLinks.create({
+    console.log("[stripe-onboard] Creating account link", account.id);
+    const link = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: `${siteUrl}/`,
-      return_url: `${siteUrl}/`,
+      refresh_url: siteUrl,
+      return_url: siteUrl,
       type: "account_onboarding",
     });
 
-    return new Response(JSON.stringify({ url: accountLink.url }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ url: link.url });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[stripe-onboard] ERROR", message);
+    return json({ error: message }, 400);
   }
 });
-
