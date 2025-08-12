@@ -40,6 +40,18 @@ serve(async (req) => {
       platformMarginCents: 100,
     };
 
+    // Persist on order
+    const { error: updErr } = await supabase
+      .from('app.orders')
+      .update({
+        shipping_cents: resp.costCents,
+        shipping_tracking: resp.trackingNumber,
+        shipping_carrier: resp.carrier,
+        label_url: resp.labelUrl,
+      })
+      .eq('id', orderId);
+    if (updErr) throw new Error(`Order update error: ${updErr.message}`);
+
     return new Response(JSON.stringify(resp), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 });

@@ -4,9 +4,22 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getSupabase } from "@/lib/supabaseClient";
+
+interface OrderRow {
+  id: string;
+  status: 'invoiced'|'paid'|'shipped'|'settled'|'refunded';
+  subtotal: number;
+  fees_bps: number;
+  shipping_cents: number;
+  shipping_tracking: string | null;
+  shipping_carrier: string | null;
+  label_url: string | null;
+}
+
 const DashboardSeller = () => {
   const [sellerInfo, setSellerInfo] = useState<{ verified: boolean; hasStripe: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paidOrders, setPaidOrders] = useState<OrderRow[]>([]);
 
   useEffect(() => {
     const run = async () => {
@@ -25,6 +38,13 @@ const DashboardSeller = () => {
         const verified = (data as any)?.kyc_status === 'verified';
         const hasStripe = Boolean((data as any)?.stripe_account_id);
         setSellerInfo({ verified, hasStripe });
+
+        // Attempt to fetch paid orders for this seller (allowed if admin via RLS policy)
+        const { data: orders } = await sb
+          .from('app.orders')
+          .select('id, status, subtotal, fees_bps, shipping_cents, shipping_tracking, shipping_carrier, label_url, lot_id')
+          .eq('status', 'paid');
+        setPaidOrders(((orders as any) || []));
       } catch {
         setSellerInfo(null);
       } finally {
@@ -33,6 +53,27 @@ const DashboardSeller = () => {
     };
     run();
   }, []);
+
+  const canGoLive = !!(sellerInfo?.verified && sellerInfo?.hasStripe);
+
+  const createLabel = async (orderId: string) => {
+    const sb = getSupabase();
+    if (!sb) return;
+    const { error } = await sb.functions.invoke('shipping-create-label', { body: { orderId } });
+    if (!error) {
+      // Refresh list
+      const { data: orders } = await sb
+        .from('app.orders')
+        .select('id, status, subtotal, fees_bps, shipping_cents, shipping_tracking, shipping_carrier, label_url, lot_id')
+        .eq('status', 'paid');
+      setPaidOrders(((orders as any) || []));
+    }
+  };
+
+  const netDue = (o: OrderRow) => {
+    const fee = (o.fees_bps / 10000) * Number(o.subtotal);
+    return (Number(o.subtotal) - fee).toFixed(2);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,14 +94,36 @@ const DashboardSeller = () => {
             <h2 className="font-semibold">Your Lots</h2>
             <p className="text-sm text-muted-foreground">Create, schedule, and manage lots here.</p>
             <div className="mt-4 flex gap-3">
-              <Button disabled={!(sellerInfo?.verified && sellerInfo?.hasStripe)} aria-disabled={!(sellerInfo?.verified && sellerInfo?.hasStripe)}>Go Live</Button>
-              <Button variant="outline" disabled={!(sellerInfo?.verified && sellerInfo?.hasStripe)} aria-disabled={!(sellerInfo?.verified && sellerInfo?.hasStripe)}>Start Lot</Button>
+              <Button disabled={!canGoLive} aria-disabled={!canGoLive}>Go Live</Button>
+              <Button variant="outline" disabled={!canGoLive} aria-disabled={!canGoLive}>Start Lot</Button>
             </div>
-            {!loading && !(sellerInfo?.verified && sellerInfo?.hasStripe) && (
+            {!loading && !canGoLive && (
               <p className="mt-2 text-xs text-muted-foreground">
                 Finish onboarding to go live → <Link to="/dashboard/seller" className="underline">Seller Dashboard</Link>
               </p>
             )}
+          </div>
+
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="font-semibold">Paid Orders</h2>
+            <div className="space-y-2 mt-2">
+              {paidOrders.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No paid orders yet (or insufficient permissions).</p>
+              ) : paidOrders.map((o) => (
+                <div key={o.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                  <div>
+                    <div className="font-medium">Order {o.id.slice(0,8)}…</div>
+                    <div className="text-muted-foreground">Net due to you ${netDue(o)}{o.shipping_cents ? ` · Shipping $${(o.shipping_cents/100).toFixed(2)}` : ''}</div>
+                    {o.shipping_tracking ? (
+                      <div className="text-muted-foreground">{o.shipping_carrier} · {o.shipping_tracking} {o.label_url && (<a href={o.label_url} target="_blank" rel="noreferrer" className="underline ml-2">View Label</a>)}</div>
+                    ) : null}
+                  </div>
+                  {!o.shipping_tracking ? (
+                    <Button onClick={() => createLabel(o.id)}>Create Label</Button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
           </div>
         </section>
         <aside className="space-y-4">
