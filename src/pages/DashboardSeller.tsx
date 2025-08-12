@@ -64,8 +64,15 @@ const DashboardSeller = () => {
     if (!sb) return;
     try {
       setOnboardingLoading(true);
+      const { data: u } = await sb.auth.getUser();
+      const uid = u.user?.id;
+      if (!uid) throw new Error('Not signed in');
+
+      // Ensure a seller record exists for this user (required by RLS and the edge function)
+      await sb.from('sellers').upsert({ id: uid }, { onConflict: 'id' });
+
       const { data, error } = await sb.functions.invoke('stripe-onboard', {
-        body: { sellerId: (await sb.auth.getUser()).data.user?.id },
+        body: { sellerId: uid },
       });
       if (error) throw error;
       const url = (data as any)?.url;
