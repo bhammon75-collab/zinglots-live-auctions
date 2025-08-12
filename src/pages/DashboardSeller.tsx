@@ -33,6 +33,7 @@ const DashboardSeller = () => {
         const uid = u.user?.id;
         if (!uid) { setSellerInfo(null); setLoading(false); return; }
         const { data, error } = await sb
+          .schema('app')
           .from('sellers')
           .select('kyc_status, stripe_account_id')
           .eq('id', uid)
@@ -69,7 +70,7 @@ const DashboardSeller = () => {
       if (!uid) throw new Error('Not signed in');
 
       // Ensure a seller record exists for this user (required by RLS and the edge function)
-      await sb.from('sellers').upsert({ id: uid }, { onConflict: 'id' });
+      await sb.schema('app').from('sellers').upsert({ id: uid }, { onConflict: 'id' });
 
       const { data, error } = await sb.functions.invoke('stripe-onboard', {
         body: { sellerId: uid },
