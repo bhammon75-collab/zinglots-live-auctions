@@ -45,6 +45,7 @@ const DashboardSeller = () => {
 
         // Attempt to fetch paid orders for this seller (allowed if admin via RLS policy)
         const { data: orders } = await sb
+          .schema('app')
           .from('orders')
           .select('id, status, subtotal, fees_bps, shipping_cents, shipping_tracking, shipping_carrier, label_url, lot_id')
           .eq('status', 'paid');
@@ -96,6 +97,7 @@ const DashboardSeller = () => {
     if (!error) {
       // Refresh list
       const { data: orders } = await sb
+        .schema('app')
         .from('orders')
         .select('id, status, subtotal, fees_bps, shipping_cents, shipping_tracking, shipping_carrier, label_url, lot_id')
         .eq('status', 'paid');

@@ -19,8 +19,8 @@ export function useLotRealtime(lotId: string) {
 
     // Initial fetch
     (async () => {
-      const { data: lot } = await sb.from('lots').select('status, ends_at').eq('id', lotId).maybeSingle();
-      const { data: bid } = await sb.from('bids').select('amount').eq('lot_id', lotId).order('amount', { ascending: false }).limit(1).maybeSingle();
+      const { data: lot } = await sb.schema('app').from('lots').select('status, ends_at').eq('id', lotId).maybeSingle();
+      const { data: bid } = await sb.schema('app').from('bids').select('amount').eq('lot_id', lotId).order('amount', { ascending: false }).limit(1).maybeSingle();
       setState((s) => ({ ...s, status: (lot as any)?.status, endsAt: (lot as any)?.ends_at, topBid: (bid as any)?.amount }));
       lastEndsAtRef.current = (lot as any)?.ends_at ?? null;
     })();

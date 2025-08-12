@@ -25,6 +25,7 @@ const DashboardBuyer = () => {
       const { data: u } = await sb.auth.getUser();
       if (!u.user) return;
       const { data } = await sb
+        .schema('app')
         .from('orders')
         .select('id, status, subtotal, fees_bps, shipping_cents, shipping_tracking, shipping_carrier, label_url')
         .eq('buyer_id', u.user.id)

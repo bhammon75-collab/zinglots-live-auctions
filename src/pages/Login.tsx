@@ -19,7 +19,7 @@ const Login = () => {
   const ensureProfile = async (sb: ReturnType<typeof getSupabase>, uid: string, email: string) => {
     try {
       const handle = email.split('@')[0];
-      await sb!.from('profiles').upsert({ id: uid, handle, display_name: handle }, { onConflict: 'id' });
+      await sb!.schema('app').from('profiles').upsert({ id: uid, handle, display_name: handle }, { onConflict: 'id' });
     } catch {}
   };
 

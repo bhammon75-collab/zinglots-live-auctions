@@ -12,7 +12,7 @@ const Admin = () => {
   const refresh = async () => {
     const sb = getSupabase();
     if (!sb) return;
-    const { data } = await sb.from('payouts').select('id, order_id, seller_id, amount, status').eq('status', 'pending').order('created_at', { ascending: false });
+    const { data } = await sb.schema('app').from('payouts').select('id, order_id, seller_id, amount, status').eq('status', 'pending').order('created_at', { ascending: false });
     setPayouts((data as any) || []);
   };
 

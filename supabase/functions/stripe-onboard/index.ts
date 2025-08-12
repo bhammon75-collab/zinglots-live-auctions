@@ -32,7 +32,7 @@ serve(async (req) => {
     if (userErr) return new Response(JSON.stringify({ error: userErr.message }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 });
     const user = userData.user;
 
-    const { data: isAdmin } = await supabase.rpc('app.is_admin');
+    const { data: isAdmin } = await supabase.rpc('is_admin');
     if (!isAdmin && user?.id !== sellerId) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
     }
