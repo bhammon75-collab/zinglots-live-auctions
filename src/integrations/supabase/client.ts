@@ -15,5 +15,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   },
   
-  global: { headers: { 'Accept-Profile': 'app' } },
+  global: { headers: { 'Accept-Profile': 'app', 'Content-Profile': 'app' } },
 });

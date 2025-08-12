@@ -15,9 +15,9 @@ const QA = () => {
     if (!sb) return toast({ description: "Supabase not configured" });
     const { data: user } = await sb.auth.getUser();
     if (!user?.user) return toast({ description: "Sign in first" });
-    const { data, error } = await sb.rpc("app.place_bid", { p_lot: lotId, p_bidder: user.user.id, p_amount: 12.34 });
+    const { error } = await sb.rpc("place_bid", { p_lot: lotId, p_amount: 12.34 });
     if (error) return toast({ description: error.message });
-    toast({ description: `Bid placed: $${data?.[0]?.new_amount ?? ""}` });
+    toast({ description: `Bid placed for $12.34` });
   };
 
   const shortenSoftClose = async () => {
@@ -31,7 +31,7 @@ const QA = () => {
   const endLotNow = async () => {
     const sb = getSupabase();
     if (!sb) return toast({ description: "Supabase not configured" });
-    const { error } = await sb.rpc("app.end_lot", { p_lot: lotId });
+    const { error } = await sb.rpc("end_lot", { p_lot: lotId });
     if (error) return toast({ description: error.message });
     toast({ description: "Lot ended (if you have permission)" });
   };
