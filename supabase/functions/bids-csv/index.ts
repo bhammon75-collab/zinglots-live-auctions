@@ -4,29 +4,47 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json", ...corsHeaders },
-  });
-
-serve(async (req) => {
+export const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (req.method !== "GET") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+
+  const url = new URL(req.url);
+  const lotId = url.searchParams.get('lot_id') || '';
+  if (!lotId) return new Response("lot_id is required", { status: 400, headers: corsHeaders });
+
+  // Test injection hook
+  const mocks = (globalThis as any).__BIDS_CSV_TEST_MOCKS__;
+  const authHeader = req.headers.get("Authorization") || "";
 
   try {
-    const { lotId } = await req.json();
-    if (!lotId || typeof lotId !== 'string') return json({ error: 'lotId is required' }, 400);
+    if (mocks) {
+      const user = mocks.getUserByToken(authHeader);
+      if (!user) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+      const lot = await mocks.getLotById(lotId);
+      const show = await mocks.getShowById(lot.show_id);
+      const role = await mocks.getProfileRole(user.id);
+      const isSeller = show.seller_id === user.id;
+      const isAdmin = role === 'admin';
+      if (!isSeller && !isAdmin) return new Response("Forbidden", { status: 403, headers: corsHeaders });
+      const rows = await mocks.getCsvRows();
+      const header = 'timestamp,alias,amount,is_proxy\n';
+      const body = rows.map((r: any) => `${new Date(r.created_at).toISOString()},${r.alias},${r.amount},${r.is_proxy ? 'true' : 'false'}`).join('\n');
+      return new Response(header + body, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="bids_${lotId}_${new Date().toISOString().slice(0,10)}.csv"`,
+        },
+      });
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Unauthorized" }, 401);
     const token = authHeader.replace("Bearer ", "");
 
     const supabaseAuth = createClient(supabaseUrl, anonKey, {
@@ -38,41 +56,43 @@ serve(async (req) => {
 
     // Verify user
     const { data: userRes, error: uErr } = await supabaseAuth.auth.getUser();
-    if (uErr || !userRes?.user) return json({ error: "Unauthorized" }, 401);
+    if (uErr || !userRes?.user) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     const uid = userRes.user.id;
 
-    // Fetch seller for lot via shows
+    // Load lot -> show -> seller
     const { data: lot, error: lErr } = await supabaseAdmin
       .from('lots').select('id, show_id').eq('id', lotId).single();
-    if (lErr || !lot) return json({ error: 'Lot not found' }, 404);
+    if (lErr || !lot) return new Response("Lot not found", { status: 404, headers: corsHeaders });
 
     const { data: show, error: sErr } = await supabaseAdmin
       .from('shows').select('seller_id').eq('id', lot.show_id).single();
-    if (sErr || !show) return json({ error: 'Show not found' }, 404);
+    if (sErr || !show) return new Response("Show not found", { status: 404, headers: corsHeaders });
 
     const { data: profile, error: pErr } = await supabaseAdmin
       .from('profiles').select('role').eq('id', uid).single();
-    if (pErr) return json({ error: pErr.message }, 400);
+    if (pErr) return new Response(pErr.message, { status: 400, headers: corsHeaders });
 
     const isSeller = show.seller_id === uid;
     const isAdmin = profile?.role === 'admin';
-    if (!isSeller && !isAdmin) return json({ error: 'Forbidden' }, 403);
+    if (!isSeller && !isAdmin) return new Response("Forbidden", { status: 403, headers: corsHeaders });
 
-    // Get anonymized bids via RPC
     const { data: rows, error: rErr } = await supabaseAdmin.rpc('public_bids_for_csv', { p_lot_id: lotId });
-    if (rErr) return json({ error: rErr.message }, 400);
+    if (rErr) return new Response(rErr.message, { status: 400, headers: corsHeaders });
 
     const header = 'timestamp,alias,amount,is_proxy\n';
-    const body = (rows as any[]).map((r) => {
-      const ts = new Date(r.created_at).toISOString();
-      const alias = String(r.alias ?? 'Bidder???').replaceAll('"', '""');
-      const amount = r.amount;
-      const proxy = r.is_proxy ? 'true' : 'false';
-      return `${ts},${alias},${amount},${proxy}`;
-    }).join('\n');
+    const body = (rows as any[]).map((r) => `${new Date(r.created_at).toISOString()},${r.alias},${r.amount},${r.is_proxy ? 'true' : 'false'}`).join('\n');
 
-    return json({ csv: header + body }, 200);
+    return new Response(header + body, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="bids_${lotId}_${new Date().toISOString().slice(0,10)}.csv"`,
+      },
+    });
   } catch (err: any) {
-    return json({ error: err?.message || 'Unexpected error' }, 500);
+    return new Response(err?.message || "Unexpected error", { status: 500, headers: corsHeaders });
   }
-});
+};
+
+serve(handler);

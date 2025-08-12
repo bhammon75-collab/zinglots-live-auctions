@@ -6,6 +6,7 @@ interface State {
   endsAt?: string | null;
   topBid?: number;
   reserveMet?: boolean;
+  highBidderId?: string | null;
   extendedPing?: boolean;
 }
 
@@ -20,9 +21,9 @@ export function useLotRealtime(lotId: string) {
 
     // Initial fetch
     (async () => {
-      const { data: lot } = await sb.schema('app').from('lots').select('status, ends_at, reserve_met').eq('id', lotId).maybeSingle();
+      const { data: lot } = await sb.schema('app').from('lots').select('status, ends_at, reserve_met, winner_id').eq('id', lotId).maybeSingle();
       const { data: bid } = await sb.schema('app').from('bids').select('amount').eq('lot_id', lotId).order('amount', { ascending: false }).limit(1).maybeSingle();
-      setState((s) => ({ ...s, status: (lot as any)?.status, endsAt: (lot as any)?.ends_at, reserveMet: (lot as any)?.reserve_met, topBid: (bid as any)?.amount }));
+      setState((s) => ({ ...s, status: (lot as any)?.status, endsAt: (lot as any)?.ends_at, reserveMet: (lot as any)?.reserve_met, highBidderId: (lot as any)?.winner_id ?? null, topBid: (bid as any)?.amount }));
       lastEndsAtRef.current = (lot as any)?.ends_at ?? null;
     })();
 
@@ -32,7 +33,7 @@ export function useLotRealtime(lotId: string) {
         const status = payload.new.status as State['status'];
         const extended = lastEndsAtRef.current && ends_at && new Date(ends_at).getTime() > new Date(lastEndsAtRef.current).getTime();
         lastEndsAtRef.current = ends_at ?? null;
-        setState((s) => ({ ...s, endsAt: ends_at, status, reserveMet: payload.new.reserve_met as boolean, extendedPing: extended || false }));
+        setState((s) => ({ ...s, endsAt: ends_at, status, reserveMet: payload.new.reserve_met as boolean, highBidderId: payload.new.winner_id as string | null, extendedPing: extended || false }));
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'app', table: 'bids', filter: `lot_id=eq.${lotId}` }, (payload: any) => {
         const amount = Number(payload.new.amount);
