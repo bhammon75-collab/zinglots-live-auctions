@@ -74,6 +74,9 @@ const DashboardSeller = () => {
       await sb.schema('app').from('sellers').upsert({ id: uid }, { onConflict: 'id' });
 
       const { data, error } = await sb.functions.invoke('stripe-onboard', {
+        headers: {
+          Authorization: `Bearer ${(await sb.auth.getSession()).data.session?.access_token}`,
+        },
         body: { sellerId: uid },
       });
       if (error) throw error;
