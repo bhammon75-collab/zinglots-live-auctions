@@ -13,6 +13,8 @@ All colors MUST be HSL.
     --brand-ink: 0 0% 11%; /* #1C1C1C */
     --brand-mint: 170 64% 52%; /* #2DD4BF */
     --brand-bg: 50 20% 97%; /* #FAFAF7 */
+    --brand-blue: 213 94% 48%; /* #1D4ED8 */
+    --brand-blue-foreground: 0 0% 100%;
 
     /* App semantics */
     --background: var(--brand-bg);

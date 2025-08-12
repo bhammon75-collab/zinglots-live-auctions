@@ -1,12 +1,6 @@
 import type { LotItem } from "@/components/LotCard";
 
-export const CATEGORIES = [
-  { name: "TCG", slug: "tcg" },
-  { name: "LEGO", slug: "lego" },
-  { name: "Action Figures", slug: "action-figures" },
-  { name: "Die-cast", slug: "die-cast" },
-  { name: "Plush", slug: "plush" },
-] as const;
+import { CATEGORIES } from "@/data/categories";
 
 export const DEMO_SELLERS = [
   { id: "s1", name: "BrickVault" },

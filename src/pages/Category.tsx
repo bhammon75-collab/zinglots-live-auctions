@@ -1,14 +1,15 @@
 import { Helmet } from "react-helmet-async";
 import ZingNav from "@/components/ZingNav";
 import { useParams } from "react-router-dom";
-import { CATEGORIES, DEMO_LOTS } from "@/data/demo";
+import { DEMO_LOTS } from "@/data/demo";
+import { CATEGORIES } from "@/data/categories";
 import LotCard from "@/components/LotCard";
 
 const Category = () => {
   const { slug } = useParams();
   const cat = CATEGORIES.find((c) => c.slug === slug);
   const title = cat?.name ?? "Category";
-  const lots = DEMO_LOTS.filter((l) => l.category.toLowerCase().replace(/\s+/g, '-') === slug);
+  const lots = DEMO_LOTS.filter((l) => CATEGORIES.find((c) => c.name === l.category)?.slug === slug);
 
   return (
     <div className="min-h-screen bg-background">

@@ -2,8 +2,8 @@ import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { useState } from "react";
+import { FEATURED_CATEGORIES } from "@/data/categories";
 
-const categories = ["TCG", "LEGO", "Action Figures", "Die-cast", "Plush"];
 
 const ZingNav = () => {
   const [open, setOpen] = useState(false);
@@ -13,7 +13,12 @@ const ZingNav = () => {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-md bg-gradient-to-tr from-primary to-accent shadow-[var(--shadow-glow)]" />
+            <div
+              className="h-8 w-8 rounded-md shadow-[var(--shadow-glow)] flex items-center justify-center font-extrabold"
+              style={{ backgroundColor: "hsl(var(--brand-blue))", color: "hsl(var(--brand-blue-foreground))" }}
+            >
+              Z
+            </div>
             <span className="text-lg font-extrabold tracking-tight">ZingLots</span>
           </Link>
         </div>
@@ -26,9 +31,9 @@ const ZingNav = () => {
             Discover
           </NavLink>
           <div className="flex items-center gap-2">
-            {categories.map((c) => (
-              <NavLink key={c} to={`/category/${encodeURIComponent(c.toLowerCase().replace(/\s+/g, '-'))}`} className="text-sm text-muted-foreground hover:text-foreground">
-                {c}
+            {FEATURED_CATEGORIES.map((c) => (
+              <NavLink key={c.slug} to={`/category/${c.slug}`} className="text-sm text-muted-foreground hover:text-foreground">
+                {c.name}
               </NavLink>
             ))}
           </div>
@@ -58,10 +63,10 @@ const ZingNav = () => {
             <NavLink to="/shows" onClick={() => setOpen(false)} className="text-sm">Shows</NavLink>
             <NavLink to="/discover" onClick={() => setOpen(false)} className="text-sm">Discover</NavLink>
             <div className="flex flex-wrap gap-3">
-              {categories.map((c) => (
-                <Button key={c} variant="pill" size="sm" asChild>
-                  <Link to={`/category/${encodeURIComponent(c.toLowerCase().replace(/\s+/g, '-'))}`} onClick={() => setOpen(false)}>
-                    {c}
+              {FEATURED_CATEGORIES.map((c) => (
+                <Button key={c.slug} variant="pill" size="sm" asChild>
+                  <Link to={`/category/${c.slug}`} onClick={() => setOpen(false)}>
+                    {c.name}
                   </Link>
                 </Button>
               ))}
