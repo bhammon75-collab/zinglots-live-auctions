@@ -39,7 +39,7 @@ const Index = () => {
                 Live shows and timed lots for TCG, LEGO, action figures, die-cast, and plush. Soft-close bidding, Buy Now fallback, and secure checkout.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
-                <Button variant="hero" size="xl" asChild>
+                <Button variant="hero" size="xl" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
                   <Link to="/shows">Browse Live Shows</Link>
                 </Button>
                 <Button variant="outline" size="lg" asChild>

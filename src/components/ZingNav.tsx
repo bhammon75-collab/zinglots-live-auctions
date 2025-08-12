@@ -43,7 +43,7 @@ const ZingNav = () => {
           <Button variant="ghost" asChild>
             <Link to="/login">Sign In</Link>
           </Button>
-          <Button variant="hero" size="sm" asChild>
+          <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
             <Link to="/dashboard/seller">Start Selling</Link>
           </Button>
         </div>
@@ -75,7 +75,7 @@ const ZingNav = () => {
               <Button variant="ghost" asChild>
                 <Link to="/login" onClick={() => setOpen(false)}>Sign In</Link>
               </Button>
-              <Button variant="hero" size="sm" asChild>
+              <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
                 <Link to="/dashboard/seller" onClick={() => setOpen(false)}>Start Selling</Link>
               </Button>
             </div>
