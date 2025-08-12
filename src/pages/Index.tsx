@@ -7,8 +7,10 @@ import heroImage from "@/assets/hero-zinglots.jpg";
 import { Button } from "@/components/ui/button";
 import { DEMO_LOTS, DEMO_SHOWS } from "@/data/demo";
 import { Link } from "react-router-dom";
+import StripeOnboardSmokeTest from "@/components/StripeOnboardSmokeTest";
 
 const Index = () => {
+  const showDev = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dev') === '1';
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -20,6 +22,7 @@ const Index = () => {
       </Helmet>
 
       <ZingNav />
+      {showDev && <StripeOnboardSmokeTest />}
 
       <main>
         {/* Hero */}
