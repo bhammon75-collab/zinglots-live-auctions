@@ -16,29 +16,32 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const siteUrl = Deno.env.get("SITE_URL") ?? "https://example.com";
-    if (!supabaseUrl || !serviceKey) throw new Error("Supabase service credentials missing");
+    if (!supabaseUrl || !serviceKey) throw new Error("Supabase credentials missing");
 
     const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+    const supabaseAuth = createClient(supabaseUrl, anonKey);
 
+    // Auth: must be the owner of the seller row (or admin)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No Authorization header");
+    if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 });
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-    if (userErr) throw new Error(userErr.message);
+    const { data: userData, error: userErr } = await supabaseAuth.auth.getUser(token);
+    if (userErr) return new Response(JSON.stringify({ error: userErr.message }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 });
     const user = userData.user;
 
-    // Only the seller themself or an admin can request onboarding
-    const { data: isAdminData } = await supabase.rpc("is_admin");
-    const isAdmin = isAdminData === true;
-    if (!isAdmin && user?.id !== sellerId) throw new Error("Not authorized");
+    const { data: isAdmin } = await supabase.rpc('app.is_admin');
+    if (!isAdmin && user?.id !== sellerId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
+    }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2023-10-16" });
 
     // Ensure seller exists
     const { data: seller, error: sellerErr } = await supabase
       .from("app.sellers")
-      .select("id, stripe_account_id")
+      .select("id, stripe_account_id, kyc_status")
       .eq("id", sellerId)
       .single();
     if (sellerErr) throw new Error(`Seller not found: ${sellerErr.message}`);

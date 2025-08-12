@@ -20,14 +20,14 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Auth: only admins can settle
+    // Auth: require admin
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No Authorization header");
+    if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 });
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: uErr } = await supabase.auth.getUser(token);
-    if (uErr) throw new Error(uErr.message);
-    const { data: isAdmin } = await supabase.rpc('is_admin');
-    if (!isAdmin) throw new Error("Not authorized");
+    const { error: uErr } = await supabase.auth.getUser(token);
+    if (uErr) return new Response(JSON.stringify({ error: uErr.message }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 });
+    const { data: isAdmin } = await supabase.rpc('app.is_admin');
+    if (!isAdmin) return new Response(JSON.stringify({ error: "Forbidden" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
 
     // Get payout and seller
     const { data: payout, error: pErr } = await supabase

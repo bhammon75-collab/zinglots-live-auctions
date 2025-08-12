@@ -46,19 +46,24 @@ serve(async (req) => {
           stripe_payment_intent: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id,
         }).eq("id", orderId);
 
-        // Find seller for this lot
-        const { data: sellerRow, error: sErr } = await supabase
-          .from("app.lots")
-          .select("show_id, app.shows!inner(seller_id)")
-          .eq("id", order.lot_id)
+        // Find seller for this lot (two-step to avoid relationship naming issues)
+        const { data: lot, error: lErr } = await supabase
+          .from('app.lots')
+          .select('show_id')
+          .eq('id', order.lot_id)
           .single();
-        if (sErr) throw new Error(`Seller lookup error: ${sErr.message}`);
-        const sellerId = (sellerRow as any).shows.seller_id as string;
+        if (lErr) throw new Error(`Lot fetch error: ${lErr.message}`);
+        const { data: show, error: sErr } = await supabase
+          .from('app.shows')
+          .select('seller_id')
+          .eq('id', lot.show_id)
+          .single();
+        if (sErr) throw new Error(`Show fetch error: ${sErr.message}`);
 
         // Upsert payout row as pending
         await supabase.from("app.payouts").upsert({
           order_id: orderId,
-          seller_id: sellerId,
+          seller_id: show.seller_id,
           amount: sellerAmount,
           status: 'pending',
           created_at: new Date().toISOString(),
@@ -71,7 +76,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });
