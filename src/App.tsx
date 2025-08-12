@@ -18,6 +18,7 @@ import Admin from "./pages/Admin";
 import Discover from "./pages/Discover";
 import QA from "./pages/QA";
 import Login from "./pages/Login";
+import AuctionRoom from "./pages/AuctionRoom";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/admin" element={<Admin />} />
               <Route path="/qa" element={<QA />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/auction/:lotId" element={<AuctionRoom />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
