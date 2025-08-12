@@ -20,6 +20,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      go_live: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       place_bid: {
         Args: { lot_id: string; offered: number; max: number }
         Returns: Json
@@ -32,6 +36,10 @@ export type Database = {
           amount: number
           is_proxy: boolean
         }[]
+      }
+      start_lot: {
+        Args: { p_title: string; p_starting: number; p_duration_secs: number }
+        Returns: string
       }
     }
     Enums: {

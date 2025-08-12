@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import ZingNav from "@/components/ZingNav";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getSupabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -23,6 +23,7 @@ const DashboardSeller = () => {
   const [paidOrders, setPaidOrders] = useState<OrderRow[]>([]);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const run = async () => {
@@ -93,6 +94,34 @@ const DashboardSeller = () => {
     }
   };
 
+  const goLive = async () => {
+    const sb = getSupabase();
+    if (!sb) return;
+    try {
+      const { data, error } = await sb.rpc('go_live');
+      if (error) throw error;
+      if (data) {
+        toast({ title: 'Show is live', description: 'You can now start lots.' });
+      }
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Go live failed', description: e?.message || 'Please complete onboarding.' });
+    }
+  };
+
+  const startLot = async () => {
+    const sb = getSupabase();
+    if (!sb) return;
+    try {
+      const { data, error } = await sb.rpc('start_lot', { p_title: 'Quick Lot', p_starting: 10, p_duration_secs: 60 });
+      if (error) throw error;
+      const lotId = data as string;
+      toast({ title: 'Lot started', description: 'Redirecting to auction room…' });
+      if (lotId) navigate(`/auction/${lotId}`);
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Start lot failed', description: e?.message || 'Please try again.' });
+    }
+  };
+
   const createLabel = async (orderId: string) => {
     const sb = getSupabase();
     if (!sb) return;
@@ -142,8 +171,8 @@ const DashboardSeller = () => {
             <h2 className="font-semibold">Your Lots</h2>
             <p className="text-sm text-muted-foreground">Create, schedule, and manage lots here.</p>
             <div className="mt-4 flex gap-3">
-              <Button disabled={!canGoLive} aria-disabled={!canGoLive}>Go Live</Button>
-              <Button variant="outline" disabled={!canGoLive} aria-disabled={!canGoLive}>Start Lot</Button>
+              <Button onClick={goLive} disabled={!canGoLive} aria-disabled={!canGoLive}>Go Live</Button>
+              <Button variant="outline" onClick={startLot} disabled={!canGoLive} aria-disabled={!canGoLive}>Start Lot</Button>
             </div>
             {!loading && !canGoLive && (
               <p className="mt-2 text-xs text-muted-foreground">
