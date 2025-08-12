@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { DEMO_LOTS } from "@/data/demo";
 import lotImage from "@/assets/lot-generic.jpg";
 import { Button } from "@/components/ui/button";
+import BidPanel from "@/components/auctions/BidPanel";
 
 const Evidence = () => (
   <section aria-labelledby="evidence" className="rounded-lg border bg-card p-4">
@@ -27,6 +28,28 @@ const Evidence = () => (
 const ProductDetail = () => {
   const { id } = useParams();
   const lot = DEMO_LOTS.find((l) => l.id === id) ?? DEMO_LOTS[0];
+
+  const minutes = parseInt(String(lot.endsIn).replace(/[^0-9]/g, '')) || 30;
+  const endsAt = new Date(Date.now() + minutes * 60000).toISOString();
+
+  const bidPanelLot = {
+    id: lot.id,
+    auction_id: 'demo-auction',
+    title: lot.title,
+    starting_bid: Number((lot.currentBid / 100).toFixed(2)),
+    current_price: Number((lot.currentBid / 100).toFixed(2)),
+    reserve_met: false,
+    high_bidder: null as string | null,
+  };
+
+  const bidPanelAuction = {
+    id: 'demo-auction',
+    ends_at: endsAt,
+    soft_close_secs: 120,
+  };
+
+  const userTier = { tier: 0 as 0|1|2, cap: 200 };
+  const isSeller = false;
 
   return (
     <div className="min-h-screen bg-background">
@@ -54,20 +77,10 @@ const ProductDetail = () => {
         <div>
           <h1 className="text-3xl font-bold">{lot.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">Category: {lot.category}</p>
-          <div className="mt-4 flex items-center gap-4">
-            <div>
-              <div className="text-sm text-muted-foreground">Current bid</div>
-              <div className="text-2xl font-semibold">${(lot.currentBid/100).toFixed(2)}</div>
-            </div>
-            {lot.buyNow && (
-              <Button variant="outline">Buy Now ${(lot.buyNow/100).toFixed(2)}</Button>
-            )}
+          <div className="mt-6">
+            <BidPanel lot={bidPanelLot} auction={bidPanelAuction} userTier={userTier} isSeller={isSeller} />
           </div>
-          <div className="mt-4 flex gap-3">
-            <Button variant="hero" size="lg">Place Bid</Button>
-            <Button variant="ghost">Add to Watchlist</Button>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">Soft-close enabled · Ends in {lot.endsIn}</p>
+
 
           <div className="mt-8 space-y-6">
             <Evidence />
