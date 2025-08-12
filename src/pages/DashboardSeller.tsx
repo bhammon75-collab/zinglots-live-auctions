@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getSupabase } from "@/lib/supabaseClient";
+import { useToast } from "@/components/ui/use-toast";
 
 interface OrderRow {
   id: string;
@@ -20,6 +21,8 @@ const DashboardSeller = () => {
   const [sellerInfo, setSellerInfo] = useState<{ verified: boolean; hasStripe: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [paidOrders, setPaidOrders] = useState<OrderRow[]>([]);
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const run = async () => {
@@ -56,6 +59,28 @@ const DashboardSeller = () => {
 
   const canGoLive = !!(sellerInfo?.verified && sellerInfo?.hasStripe);
 
+  const startOnboarding = async () => {
+    const sb = getSupabase();
+    if (!sb) return;
+    try {
+      setOnboardingLoading(true);
+      const { data, error } = await sb.functions.invoke('stripe-onboard', {
+        body: { sellerId: (await sb.auth.getUser()).data.user?.id },
+      });
+      if (error) throw error;
+      const url = (data as any)?.url;
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        toast({ variant: 'destructive', title: 'Onboarding error', description: 'No onboarding URL returned.' });
+      }
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Onboarding failed', description: e?.message || 'Please try again.' });
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
+
   const createLabel = async (orderId: string) => {
     const sb = getSupabase();
     if (!sb) return;
@@ -89,6 +114,16 @@ const DashboardSeller = () => {
           <div className="rounded-lg border bg-card p-6">
             <h2 className="font-semibold">KYC & Stripe Connect</h2>
             <p className="text-sm text-muted-foreground">Verify your identity and connect payouts to start selling.</p>
+            <div className="mt-4 flex gap-3">
+              <Button onClick={startOnboarding} disabled={onboardingLoading} aria-disabled={onboardingLoading}>
+                {sellerInfo?.hasStripe ? (sellerInfo?.verified ? 'View Stripe' : 'Continue Onboarding') : 'Start Onboarding'}
+              </Button>
+            </div>
+            {!sellerInfo?.verified && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Complete verification to enable Go Live and Start Lot.
+              </p>
+            )}
           </div>
           <div className="rounded-lg border bg-card p-6">
             <h2 className="font-semibold">Your Lots</h2>
