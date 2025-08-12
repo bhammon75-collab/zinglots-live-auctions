@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { DEMO_LOTS, DEMO_SHOWS } from "@/data/demo";
 import { Link } from "react-router-dom";
 import StripeOnboardSmokeTest from "@/components/StripeOnboardSmokeTest";
+import PayPalSmokeTest from "@/components/PayPalSmokeTest";
 
 const Index = () => {
   const showDev = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dev') === '1';
@@ -22,7 +23,10 @@ const Index = () => {
       </Helmet>
 
       <ZingNav />
-      {showDev && <StripeOnboardSmokeTest />}
+      {showDev && (<>
+        <StripeOnboardSmokeTest />
+        <PayPalSmokeTest />
+      </>)}
 
       <main>
         {/* Hero */}
