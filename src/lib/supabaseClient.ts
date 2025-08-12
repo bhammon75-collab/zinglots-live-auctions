@@ -1,16 +1,30 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-// Frontend Supabase client (requires Lovable Supabase integration to inject runtime URL/key)
-const url = (window as any).__SUPABASE_URL__ || '';
-const anon = (window as any).__SUPABASE_ANON_KEY__ || '';
-if (!url || !anon) {
-  console.warn('Supabase client not configured: missing __SUPABASE_URL__/__SUPABASE_ANON_KEY__');
+let client: SupabaseClient | null = null;
+
+function resolveKeys() {
+  const w = window as any;
+  const url = w.__SUPABASE_URL__ || w.SUPABASE_URL || w.__env?.SUPABASE_URL;
+  const anon = w.__SUPABASE_ANON_KEY__ || w.SUPABASE_ANON_KEY || w.__env?.SUPABASE_ANON_KEY;
+  return { url, anon } as { url?: string; anon?: string };
 }
 
-export const supabase = createClient(url, anon);
+export function getSupabase(): SupabaseClient | null {
+  if (client) return client;
+  const { url, anon } = resolveKeys();
+  if (!url || !anon) {
+    console.warn('Supabase not configured. Set project Supabase integration to enable backend features.');
+    return null;
+  }
+  client = createClient(url, anon);
+  return client;
+}
 
 export async function invokeFn<T = any>(name: string, body?: unknown): Promise<T> {
-  const { data, error } = await supabase.functions.invoke(name, { body });
+  const sb = getSupabase();
+  if (!sb) throw new Error('Supabase not configured');
+  const { data, error } = await sb.functions.invoke(name, { body });
   if (error) throw error;
   return data as T;
 }
+

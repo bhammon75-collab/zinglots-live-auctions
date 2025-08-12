@@ -3,7 +3,7 @@ import ZingNav from "@/components/ZingNav";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabase } from "@/lib/supabaseClient";
 import LiveLotTicker from "@/components/LiveLotTicker";
 
 const QA = () => {
@@ -11,15 +11,19 @@ const QA = () => {
   const [showId, setShowId] = useState("");
 
   const placeSampleBid = async () => {
-    const { data: user } = await supabase.auth.getUser();
+    const sb = getSupabase();
+    if (!sb) return toast({ description: "Supabase not configured" });
+    const { data: user } = await sb.auth.getUser();
     if (!user?.user) return toast({ description: "Sign in first" });
-    const { data, error } = await supabase.rpc("app.place_bid", { p_lot: lotId, p_bidder: user.user.id, p_amount: 12.34 });
+    const { data, error } = await sb.rpc("app.place_bid", { p_lot: lotId, p_bidder: user.user.id, p_amount: 12.34 });
     if (error) return toast({ description: error.message });
     toast({ description: `Bid placed: $${data?.[0]?.new_amount ?? ""}` });
   };
 
   const shortenSoftClose = async () => {
-    const { error } = await supabase.from("app.lots").update({ ends_at: new Date(Date.now() + 10_000).toISOString() }).eq("id", lotId);
+    const sb = getSupabase();
+    if (!sb) return toast({ description: "Supabase not configured" });
+    const { error } = await sb.from("app.lots").update({ ends_at: new Date(Date.now() + 10_000).toISOString() }).eq("id", lotId);
     if (error) return toast({ description: error.message });
     toast({ description: "ends_at set to 10s from now (if you have permission)" });
   };
@@ -57,3 +61,4 @@ const QA = () => {
 };
 
 export default QA;
+
