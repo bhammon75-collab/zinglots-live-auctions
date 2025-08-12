@@ -17,6 +17,7 @@ import DashboardSeller from "./pages/DashboardSeller";
 import Admin from "./pages/Admin";
 import Discover from "./pages/Discover";
 import QA from "./pages/QA";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/dashboard/seller" element={<DashboardSeller />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/qa" element={<QA />} />
+              <Route path="/login" element={<Login />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

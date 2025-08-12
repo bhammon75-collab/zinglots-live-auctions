@@ -36,7 +36,7 @@ const ZingNav = () => {
 
         <div className="hidden items-center gap-2 md:flex">
           <Button variant="ghost" asChild>
-            <Link to="/dashboard/buyer">Sign In</Link>
+            <Link to="/login">Sign In</Link>
           </Button>
           <Button variant="hero" size="sm" asChild>
             <Link to="/dashboard/seller">Start Selling</Link>
@@ -68,7 +68,7 @@ const ZingNav = () => {
             </div>
             <div className="flex gap-2 pt-2">
               <Button variant="ghost" asChild>
-                <Link to="/dashboard/buyer" onClick={() => setOpen(false)}>Sign In</Link>
+                <Link to="/login" onClick={() => setOpen(false)}>Sign In</Link>
               </Button>
               <Button variant="hero" size="sm" asChild>
                 <Link to="/dashboard/seller" onClick={() => setOpen(false)}>Start Selling</Link>
