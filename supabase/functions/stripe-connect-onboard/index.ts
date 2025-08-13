@@ -5,8 +5,8 @@ const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY')
 const SITE_URL = Deno.env.get('SITE_URL') || '*'
 
 const cors = {
-  'Access-Control-Allow-Origin': SITE_URL,
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, accept-profile, content-profile',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
