@@ -77,19 +77,34 @@ serve(async (req) => {
       if (pi) {
         await supabase.from('orders').update({ status: 'refunded' }).eq('stripe_payment_intent', pi);
       }
-    } else if (event.type === 'account.updated') {
-      const account = event.data.object as any;
-      const sellerId = account?.metadata?.sellerId as string | undefined;
-      if (sellerId) {
-        const verified = Boolean(account.charges_enabled && account.payouts_enabled);
-        // Keep account id and update KYC status
+    } else if (event.type === 'account.updated' || event.type === 'capability.updated') {
+      const obj: any = event.data.object;
+      const acctId = obj.id || obj.account; // account.updated has id, capability.updated has account
+
+      // Derive flags from either direct fields or capabilities
+      const chargesEnabled = !!(obj.charges_enabled || (obj.capabilities?.card_payments === 'active'));
+      const payoutsEnabled = !!(obj.payouts_enabled || (obj.capabilities?.transfers === 'active'));
+      const detailsSubmitted = !!obj.details_submitted;
+      const requirements = obj.requirements?.currently_due ?? null;
+
+      // Update seller row by stripe_account_id with connect_* fields
+      const { error: upErr } = await supabase
+        .from('sellers')
+        .update({
+          connect_charges_enabled: chargesEnabled,
+          connect_payouts_enabled: payoutsEnabled,
+          connect_details_submitted: detailsSubmitted,
+          connect_requirements: requirements,
+        })
+        .eq('stripe_account_id', acctId);
+
+      // Optionally keep legacy kyc_status in sync for existing gating
+      if (!upErr && typeof obj.id === 'string') {
+        const legacyVerified = Boolean(chargesEnabled && payoutsEnabled);
         await supabase
           .from('sellers')
-          .update({
-            stripe_account_id: account.id,
-            kyc_status: verified ? 'verified' : 'pending',
-          })
-          .eq('id', sellerId);
+          .update({ kyc_status: legacyVerified ? 'verified' : 'pending' })
+          .eq('stripe_account_id', acctId);
       }
     }
 

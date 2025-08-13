@@ -21,7 +21,14 @@ interface OrderRow {
 
 
 const DashboardSeller = () => {
-  const [sellerInfo, setSellerInfo] = useState<{ verified: boolean; hasStripe: boolean } | null>(null);
+  const [sellerInfo, setSellerInfo] = useState<{
+    verified: boolean;
+    hasStripe: boolean;
+    connectDetailsSubmitted?: boolean;
+    connectChargesEnabled?: boolean;
+    connectPayoutsEnabled?: boolean;
+    connectRequirements?: any;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [paidOrders, setPaidOrders] = useState<OrderRow[]>([]);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
@@ -44,13 +51,23 @@ const DashboardSeller = () => {
         const { data, error } = await sb
           .schema('app')
           .from('sellers')
-          .select('kyc_status, stripe_account_id')
+          .select('kyc_status, stripe_account_id, connect_details_submitted, connect_charges_enabled, connect_payouts_enabled, connect_requirements')
           .eq('id', uid)
           .maybeSingle();
         if (error) throw error;
-        const verified = (data as any)?.kyc_status === 'verified';
+        const details = Boolean((data as any)?.connect_details_submitted);
+        const charges = Boolean((data as any)?.connect_charges_enabled);
+        const payouts = Boolean((data as any)?.connect_payouts_enabled);
         const hasStripe = Boolean((data as any)?.stripe_account_id);
-        setSellerInfo({ verified, hasStripe });
+        const verified = ((data as any)?.kyc_status === 'verified') || details;
+        setSellerInfo({
+          verified,
+          hasStripe,
+          connectDetailsSubmitted: details,
+          connectChargesEnabled: charges,
+          connectPayoutsEnabled: payouts,
+          connectRequirements: (data as any)?.connect_requirements ?? null,
+        });
 
         // Find running show for this seller
         const { data: srow } = await sb
@@ -79,7 +96,7 @@ const DashboardSeller = () => {
     run();
   }, []);
 
-  const canGoLive = !!(sellerInfo?.verified && sellerInfo?.hasStripe);
+  const canGoLive = !!((sellerInfo?.verified && sellerInfo?.hasStripe) || sellerInfo?.connectDetailsSubmitted);
 
   const startOnboarding = async () => {
     const sb = getSupabase();
@@ -90,16 +107,8 @@ const DashboardSeller = () => {
       const uid = u.user?.id;
       if (!uid) throw new Error('Not signed in');
 
-      // Ensure a seller record exists for this user (required by RLS and the edge function)
-      await sb.schema('app').from('sellers').upsert({ id: uid }, { onConflict: 'id' });
-
-      const { data, error } = await sb.functions.invoke('stripe-onboard', {
-        headers: {
-          Authorization: `Bearer ${(await sb.auth.getSession()).data.session?.access_token}`,
-        },
-        body: { sellerId: uid },
-      });
-      if (error) throw error;
+      const { data, error } = await sb.functions.invoke('stripe-connect-onboard', { body: {} });
+      if (error) throw error as any;
       const url = (data as any)?.url;
       if (url) {
         window.open(url, '_blank');
@@ -190,6 +199,15 @@ const DashboardSeller = () => {
               <Button onClick={startOnboarding} disabled={onboardingLoading} aria-disabled={onboardingLoading}>
                 {sellerInfo?.hasStripe ? (sellerInfo?.verified ? 'View Stripe' : 'Continue Onboarding') : 'Start Onboarding'}
               </Button>
+            </div>
+            <div className="mt-4 grid gap-1 text-xs text-muted-foreground">
+              <div>Account: {sellerInfo?.hasStripe ? 'Connected' : 'Not connected'}</div>
+              <div>Details submitted: {sellerInfo?.connectDetailsSubmitted ? 'Yes' : 'No'}</div>
+              <div>Charges enabled: {sellerInfo?.connectChargesEnabled ? 'Yes' : 'No'}</div>
+              <div>Payouts enabled: {sellerInfo?.connectPayoutsEnabled ? 'Yes' : 'No'}</div>
+              {Array.isArray(sellerInfo?.connectRequirements) && (sellerInfo!.connectRequirements as any[])?.length > 0 && (
+                <div>Action required: {(sellerInfo!.connectRequirements as any[]).join(', ')}</div>
+              )}
             </div>
             {!sellerInfo?.verified && (
               <p className="mt-2 text-xs text-muted-foreground">

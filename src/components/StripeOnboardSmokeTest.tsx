@@ -16,8 +16,8 @@ const StripeOnboardSmokeTest = () => {
         return;
       }
       const sellerId = `smoke-${Date.now()}`;
-      const { data, error } = await sb.functions.invoke("stripe-onboard", {
-        body: { sellerId },
+      const { data, error } = await sb.functions.invoke("stripe-connect-onboard", {
+        body: {},
       });
       if (error) throw error;
       const url = (data as any)?.url;
