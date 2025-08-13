@@ -27,6 +27,9 @@ const ZingNav = () => {
           <NavLink to="/shows" className="text-sm text-muted-foreground hover:text-foreground">
             Shows
           </NavLink>
+          <NavLink to="/live" className="text-sm text-muted-foreground hover:text-foreground">
+            Live
+          </NavLink>
           <NavLink to="/discover" className="text-sm text-muted-foreground hover:text-foreground">
             Discover
           </NavLink>
@@ -42,6 +45,9 @@ const ZingNav = () => {
         <div className="hidden items-center gap-2 md:flex">
           <Button variant="ghost" asChild>
             <Link to="/login">Sign In</Link>
+          </Button>
+          <Button variant="ghost" asChild>
+            <Link to="/seller/apply">Apply</Link>
           </Button>
           <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
             <Link to="/dashboard/seller">Start Selling</Link>
@@ -61,6 +67,7 @@ const ZingNav = () => {
         <div className="border-t bg-background md:hidden">
           <div className="container mx-auto flex flex-col gap-3 px-4 py-4">
             <NavLink to="/shows" onClick={() => setOpen(false)} className="text-sm">Shows</NavLink>
+            <NavLink to="/live" onClick={() => setOpen(false)} className="text-sm">Live</NavLink>
             <NavLink to="/discover" onClick={() => setOpen(false)} className="text-sm">Discover</NavLink>
             <div className="flex flex-wrap gap-3">
               {FEATURED_CATEGORIES.map((c) => (
@@ -74,6 +81,9 @@ const ZingNav = () => {
             <div className="flex gap-2 pt-2">
               <Button variant="ghost" asChild>
                 <Link to="/login" onClick={() => setOpen(false)}>Sign In</Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link to="/seller/apply" onClick={() => setOpen(false)}>Apply</Link>
               </Button>
               <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
                 <Link to="/dashboard/seller" onClick={() => setOpen(false)}>Start Selling</Link>

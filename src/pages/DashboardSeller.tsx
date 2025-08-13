@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { getSupabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/use-toast";
 import ShippingTrackingDialog from "@/components/ShippingTrackingDialog";
+import CSVImport from "@/components/lots/CSVImport";
 
 interface OrderRow {
   id: string;
@@ -26,6 +27,8 @@ const DashboardSeller = () => {
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [trackingOpen, setTrackingOpen] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+  const [sellerId, setSellerId] = useState<string | null>(null);
+  const [runningShowId, setRunningShowId] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -37,6 +40,7 @@ const DashboardSeller = () => {
         const { data: u } = await sb.auth.getUser();
         const uid = u.user?.id;
         if (!uid) { setSellerInfo(null); setLoading(false); return; }
+        setSellerId(uid);
         const { data, error } = await sb
           .schema('app')
           .from('sellers')
@@ -48,7 +52,18 @@ const DashboardSeller = () => {
         const hasStripe = Boolean((data as any)?.stripe_account_id);
         setSellerInfo({ verified, hasStripe });
 
-        // Attempt to fetch paid orders for this seller (allowed if admin via RLS policy)
+        // Find running show for this seller
+        const { data: srow } = await sb
+          .schema('app')
+          .from('shows')
+          .select('id')
+          .eq('seller_id', uid)
+          .eq('status', 'running')
+          .order('created_at', { ascending: false })
+          .maybeSingle();
+        if ((srow as any)?.id) setRunningShowId((srow as any).id);
+
+        // Attempt to fetch paid orders (visible if permitted by RLS)
         const { data: orders } = await sb
           .schema('app')
           .from('orders')
@@ -106,6 +121,7 @@ const DashboardSeller = () => {
       if (error) throw error;
       if (data) {
         toast({ title: 'Show is live', description: 'You can now start lots.' });
+        setRunningShowId(data as string);
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Go live failed', description: e?.message || 'Please complete onboarding.' });
@@ -194,6 +210,16 @@ const DashboardSeller = () => {
               </p>
             )}
           </div>
+
+          {canGoLive && runningShowId && sellerId && (
+            <div className="rounded-lg border bg-card p-6">
+              <h2 className="font-semibold">Bulk Import Lots (CSV)</h2>
+              <p className="text-sm text-muted-foreground">Import lots into your running show.</p>
+              <div className="mt-4">
+                <CSVImport showId={runningShowId} sellerId={sellerId} />
+              </div>
+            </div>
+          )}
 
           <div className="rounded-lg border bg-card p-6">
             <h2 className="font-semibold">Paid Orders</h2>
