@@ -6,12 +6,22 @@ import LotCard from "@/components/LotCard";
 import heroImage from "@/assets/hero-zinglots.jpg";
 import { Button } from "@/components/ui/button";
 import { DEMO_LOTS, DEMO_SHOWS } from "@/data/demo";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import StripeOnboardSmokeTest from "@/components/StripeOnboardSmokeTest";
 import PayPalSmokeTest from "@/components/PayPalSmokeTest";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { useState } from "react";
 
 const Index = () => {
   const showDev = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('dev') === '1';
+  const [term, setTerm] = useState("");
+  const navigate = useNavigate();
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = term.trim();
+    navigate(`/discover${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+  };
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -49,6 +59,19 @@ const Index = () => {
               <div className="mt-4 text-sm text-muted-foreground">
                 Join 50K+ collectors finding deals daily
               </div>
+              <form onSubmit={handleSearchSubmit} className="mt-4 flex w-full max-w-xl gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    value={term}
+                    onChange={(e) => setTerm(e.target.value)}
+                    placeholder="Search for anything"
+                    aria-label="Search"
+                    className="pl-10 bg-card text-foreground shadow-[var(--shadow-elevate)]"
+                  />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                </div>
+                <Button type="submit" className="bg-brand-blue text-brand-blue-foreground">Search</Button>
+              </form>
             </div>
             <div className="relative overflow-hidden rounded-xl border shadow-[var(--shadow-elevate)]">
               <img src={heroImage} alt="ZingLots marketplace for collectibles hero" className="h-full w-full object-cover" />

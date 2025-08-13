@@ -1,8 +1,8 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Menu, Search } from "lucide-react";
+
+import { Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FEATURED_CATEGORIES } from "@/data/categories";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,8 +13,6 @@ const ZingNav = () => {
   const [isAuthed, setIsAuthed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
-  const [term, setTerm] = useState("");
-  const navigate = useNavigate();
 
 useEffect(() => {
   const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -36,12 +34,6 @@ useEffect(() => {
   return () => subscription.unsubscribe();
 }, []);
 
-const handleSearchSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  const q = term.trim();
-  navigate(`/discover${q ? `?q=${encodeURIComponent(q)}` : ""}`);
-  setOpen(false);
-};
 
 const handleSignOut = async () => {
   await supabase.auth.signOut();
@@ -61,26 +53,10 @@ const handleSignOut = async () => {
             <span className="text-xl font-extrabold tracking-tight">ingLots</span>
           </Link>
         </div>
-        <form onSubmit={handleSearchSubmit} className="hidden md:flex items-center gap-2 mx-4 flex-1 max-w-xl">
-          <div className="relative w-full">
-            <Input
-              value={term}
-              onChange={(e) => setTerm(e.target.value)}
-              placeholder="Search for anything"
-              aria-label="Search"
-              className="pl-9"
-            />
-            <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          </div>
-          <Button type="submit" className="bg-brand-blue text-brand-blue-foreground">Search</Button>
-        </form>
 
         <nav className="hidden items-center gap-6 md:flex">
           <NavLink to="/discover" className="text-sm text-muted-foreground hover:text-foreground">
             Discover
-          </NavLink>
-          <NavLink to="/shows" className="text-sm text-muted-foreground hover:text-foreground">
-            Shows
           </NavLink>
           <NavLink to="/help" className="text-sm text-muted-foreground hover:text-foreground">
             Help & Contact
@@ -143,13 +119,8 @@ const handleSignOut = async () => {
       {open && (
         <div className="border-t bg-background md:hidden">
           <div className="container mx-auto flex flex-col gap-3 px-4 py-4">
-            <form onSubmit={handleSearchSubmit} className="flex gap-2">
-              <Input value={term} onChange={(e)=>setTerm(e.target.value)} placeholder="Search for anything" aria-label="Search" />
-              <Button type="submit" className="bg-brand-blue text-brand-blue-foreground">Search</Button>
-            </form>
-            <NavLink to="/shows" onClick={() => setOpen(false)} className="text-sm">Shows</NavLink>
-            <NavLink to="/discover" onClick={() => setOpen(false)} className="text-sm">Discover</NavLink>
             <NavLink to="/help" onClick={() => setOpen(false)} className="text-sm">Help & Contact</NavLink>
+            <NavLink to="/discover" onClick={() => setOpen(false)} className="text-sm">Discover</NavLink>
             {(() => {
               const showDrops = typeof window !== 'undefined' && (isAdmin || new URLSearchParams(window.location.search).get('dev') === '1');
               return showDrops ? (
