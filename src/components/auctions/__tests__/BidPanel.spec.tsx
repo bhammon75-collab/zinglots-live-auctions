@@ -112,4 +112,20 @@ describe('BidPanel', () => {
     rerender(<BidPanel {...baseProps} />)
     await findByText(/RESERVE MET/i)
   })
+
+  it('Shows friendly toast on DB rate limit (RLT01)', async () => {
+    rpcMock.mockResolvedValue({ error: { code: 'RLT01', message: 'Too many bids, slow down (rate limit)' } })
+    const { getByPlaceholderText, getByRole } = render(<BidPanel {...baseProps} />)
+
+    const input = getByPlaceholderText(/Enter/i) as HTMLInputElement
+    await userEvent.clear(input)
+    await userEvent.type(input, '50')
+    await userEvent.click(getByRole('button', { name: /place bid/i }))
+
+    await flush()
+    expect(toastSpy).toHaveBeenCalled()
+    const call = toastSpy.mock.calls.at(-1)?.[0] || {}
+    const text = (call.title || '') + (call.description || '')
+    expect(text).toMatch(/bidding too fast/i)
+  })
 })
