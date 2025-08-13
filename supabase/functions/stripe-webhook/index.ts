@@ -77,6 +77,20 @@ serve(async (req) => {
       if (pi) {
         await supabase.from('orders').update({ status: 'refunded' }).eq('stripe_payment_intent', pi);
       }
+    } else if (event.type === 'account.updated') {
+      const account = event.data.object as any;
+      const sellerId = account?.metadata?.sellerId as string | undefined;
+      if (sellerId) {
+        const verified = Boolean(account.charges_enabled && account.payouts_enabled);
+        // Keep account id and update KYC status
+        await supabase
+          .from('sellers')
+          .update({
+            stripe_account_id: account.id,
+            kyc_status: verified ? 'verified' : 'pending',
+          })
+          .eq('id', sellerId);
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts"; // Stripe needs fetch in Deno
 import Stripe from "https://esm.sh/stripe@14.21.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 // CORS headers required on ALL responses
 const baseCorsHeaders = {
@@ -35,6 +36,21 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     if (!siteUrl) throw new Error("SITE_URL is not set");
 
+    // Supabase (service role) - used to verify caller and upsert seller record
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false }, db: { schema: "app" } }
+    );
+
+    // Verify the caller via Authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError) return json({ error: `Auth error: ${userError.message}` }, 401);
+    const user = userData.user;
+
     let payload: any = {};
     try {
       payload = await req.json();
@@ -46,6 +62,9 @@ serve(async (req) => {
     if (!sellerId || typeof sellerId !== "string") {
       return json({ error: "sellerId is required (string)" }, 400);
     }
+    if (sellerId !== user.id) {
+      return json({ error: "Seller mismatch" }, 403);
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 
@@ -54,6 +73,9 @@ serve(async (req) => {
       type: "express",
       metadata: { sellerId },
     });
+
+    // Persist Stripe account id on seller row (kyc remains 'pending' until webhook verifies)
+    await supabase.from("sellers").upsert({ id: user.id, stripe_account_id: account.id }, { onConflict: "id" });
 
     console.log("[stripe-onboard] Creating account link", account.id);
     const link = await stripe.accountLinks.create({
