@@ -1,6 +1,14 @@
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { Menu, ShoppingCart } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -42,7 +50,7 @@ const handleSignOut = async () => {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-0.5">
             <div
               className="h-10 w-10 rounded-md shadow-[var(--shadow-glow)] flex items-center justify-center font-extrabold text-2xl leading-none"
@@ -52,40 +60,52 @@ const handleSignOut = async () => {
             </div>
             <span className="text-xl font-extrabold tracking-tight">ingLots!</span>
           </Link>
+          <nav className="hidden md:flex items-center gap-6">
+            <NavLink to="/discover" className="text-sm text-muted-foreground hover:text-foreground">
+              Discover
+            </NavLink>
+            <NavLink to="/help" className="text-sm text-muted-foreground hover:text-foreground">
+              Help & Contact
+            </NavLink>
+            {(() => {
+              const showDrops = typeof window !== 'undefined' && (isAdmin || new URLSearchParams(window.location.search).get('dev') === '1');
+              return showDrops ? (
+                <NavLink to="/live" className="inline-flex items-center text-sm">
+                  <Badge variant="secondary">Drops</Badge>
+                </NavLink>
+              ) : null;
+            })()}
+          </nav>
         </div>
 
-        <nav className="hidden items-center gap-6 md:flex">
-          <NavLink to="/discover" className="text-sm text-muted-foreground hover:text-foreground">
-            Discover
-          </NavLink>
-          <NavLink to="/help" className="text-sm text-muted-foreground hover:text-foreground">
-            Help & Contact
-          </NavLink>
-          {(() => {
-            const showDrops = typeof window !== 'undefined' && (isAdmin || new URLSearchParams(window.location.search).get('dev') === '1');
-            return showDrops ? (
-              <NavLink to="/live" className="inline-flex items-center text-sm">
-                <Badge variant="secondary">Drops</Badge>
-              </NavLink>
-            ) : null;
-          })()}
-        </nav>
-
-<div className="hidden items-center gap-2 md:flex">
-          <Button variant="ghost" size="icon" asChild aria-label="Cart">
-            <Link to="/cart"><ShoppingCart className="h-5 w-5" /></Link>
-          </Button>
+        <div className="hidden items-center gap-2 md:flex">
           {isAuthed ? (
             <>
-              <span className="hidden lg:inline text-sm text-muted-foreground">Hi, {displayName || 'there'}!</span>
-              <Button variant="ghost" asChild>
-                <Link to="/dashboard/buyer">Dashboard</Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="hidden lg:inline">
+                    Hi, {displayName || 'there'}!
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Account</DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard/buyer">Buyer Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard/seller">Seller Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>Sign out</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button variant="ghost" size="icon" asChild aria-label="Cart">
+                <Link to="/cart"><ShoppingCart className="h-5 w-5" /></Link>
               </Button>
+
               <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
                 <Link to="/dashboard/seller">Sell now</Link>
-              </Button>
-              <Button variant="secondary" onClick={handleSignOut}>
-                Sign out
               </Button>
             </>
           ) : (
@@ -96,6 +116,11 @@ const handleSignOut = async () => {
               <Button variant="ghost" asChild>
                 <Link to="/seller/apply">Apply</Link>
               </Button>
+
+              <Button variant="ghost" size="icon" asChild aria-label="Cart">
+                <Link to="/cart"><ShoppingCart className="h-5 w-5" /></Link>
+              </Button>
+
               <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
                 <Link to="/dashboard/seller">Start Selling</Link>
               </Button>
@@ -125,17 +150,17 @@ const handleSignOut = async () => {
                 </NavLink>
               ) : null;
             })()}
-<div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-2">
               {isAuthed ? (
                 <>
                   <Button variant="ghost" asChild>
                     <Link to="/dashboard/buyer" onClick={() => setOpen(false)}>Dashboard</Link>
                   </Button>
-                  <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
-                    <Link to="/dashboard/seller" onClick={() => setOpen(false)}>Sell now</Link>
-                  </Button>
                   <Button variant="secondary" onClick={() => { handleSignOut(); setOpen(false); }}>
                     Sign out
+                  </Button>
+                  <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
+                    <Link to="/dashboard/seller" onClick={() => setOpen(false)}>Sell now</Link>
                   </Button>
                 </>
               ) : (
