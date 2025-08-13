@@ -1,12 +1,28 @@
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FEATURED_CATEGORIES } from "@/data/categories";
+import { supabase } from "@/integrations/supabase/client";
 
 
 const ZingNav = () => {
   const [open, setOpen] = useState(false);
+  const [isAuthed, setIsAuthed] = useState(false);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthed(!!session);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthed(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -42,16 +58,29 @@ const ZingNav = () => {
           </div>
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
-          <Button variant="ghost" asChild>
-            <Link to="/login">Sign In</Link>
-          </Button>
-          <Button variant="ghost" asChild>
-            <Link to="/seller/apply">Apply</Link>
-          </Button>
-          <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
-            <Link to="/dashboard/seller">Start Selling</Link>
-          </Button>
+<div className="hidden items-center gap-2 md:flex">
+          {isAuthed ? (
+            <>
+              <Button variant="ghost" asChild>
+                <Link to="/dashboard/buyer">Dashboard</Link>
+              </Button>
+              <Button variant="secondary" onClick={handleSignOut}>
+                Sign out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link to="/login">Sign In</Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link to="/seller/apply">Apply</Link>
+              </Button>
+              <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
+                <Link to="/dashboard/seller">Start Selling</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <button
@@ -78,16 +107,29 @@ const ZingNav = () => {
                 </Button>
               ))}
             </div>
-            <div className="flex gap-2 pt-2">
-              <Button variant="ghost" asChild>
-                <Link to="/login" onClick={() => setOpen(false)}>Sign In</Link>
-              </Button>
-              <Button variant="ghost" asChild>
-                <Link to="/seller/apply" onClick={() => setOpen(false)}>Apply</Link>
-              </Button>
-              <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
-                <Link to="/dashboard/seller" onClick={() => setOpen(false)}>Start Selling</Link>
-              </Button>
+<div className="flex gap-2 pt-2">
+              {isAuthed ? (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link to="/dashboard/buyer" onClick={() => setOpen(false)}>Dashboard</Link>
+                  </Button>
+                  <Button variant="secondary" onClick={() => { handleSignOut(); setOpen(false); }}>
+                    Sign out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link to="/login" onClick={() => setOpen(false)}>Sign In</Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
+                    <Link to="/seller/apply" onClick={() => setOpen(false)}>Apply</Link>
+                  </Button>
+                  <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
+                    <Link to="/dashboard/seller" onClick={() => setOpen(false)}>Start Selling</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
