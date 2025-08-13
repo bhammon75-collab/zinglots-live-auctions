@@ -19,6 +19,7 @@ import Discover from "./pages/Discover";
 import QA from "./pages/QA";
 import Login from "./pages/Login";
 import AuctionRoom from "./pages/AuctionRoom";
+import GoLive from "./pages/seller/GoLive";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/cart" element={<CartInvoice />} />
               <Route path="/dashboard/buyer" element={<DashboardBuyer />} />
               <Route path="/dashboard/seller" element={<DashboardSeller />} />
+              <Route path="/seller/live" element={<GoLive />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/qa" element={<QA />} />
               <Route path="/login" element={<Login />} />

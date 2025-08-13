@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": Deno.env.get("SITE_URL") ?? "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
@@ -36,23 +37,43 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, currency = 'USD', description = 'ZingLots Order' } = await req.json();
-    if (!amount || isNaN(Number(amount))) throw new Error('Amount is required');
+    const body = await req.json();
+    const { amount, currency = 'USD', description = 'ZingLots Order', orderId } = body;
 
     const baseUrl = getEnv('PAYPAL_API_BASE', 'https://api-m.sandbox.paypal.com');
     const clientId = getEnv('PAYPAL_CLIENT_ID');
     const secret = getEnv('PAYPAL_CLIENT_SECRET');
 
+    let totalValue: string;
+    let customId: string | undefined;
+
+    if (orderId) {
+      // Compute total from DB snapshot
+      const supabase = createClient(getEnv('SUPABASE_URL'), getEnv('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false }, db: { schema: 'app' } });
+      const { data: o, error: oe } = await supabase
+        .from('orders')
+        .select('id, subtotal, shipping_cents, shipping_flat_cents')
+        .eq('id', orderId)
+        .single();
+      if (oe) throw new Error(`Order not found: ${oe.message}`);
+      const subtotalCents = Math.round(Number(o.subtotal) * 100);
+      const shippingCents = Number(o.shipping_flat_cents || o.shipping_cents || 0);
+      totalValue = ((subtotalCents + shippingCents) / 100).toFixed(2);
+      customId = orderId;
+    } else {
+      if (!amount || isNaN(Number(amount))) throw new Error('Amount is required');
+      totalValue = Number(amount).toFixed(2);
+    }
+
     const accessToken = await getAccessToken(baseUrl, clientId, secret);
 
-    const value = Number(amount).toFixed(2);
-
-    const body = {
+    const bodyOut = {
       intent: 'CAPTURE',
       purchase_units: [
         {
-          amount: { currency_code: currency, value },
+          amount: { currency_code: currency, value: totalValue },
           description,
+          custom_id: customId,
         },
       ],
       application_context: {
@@ -67,7 +88,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(bodyOut),
     });
 
     if (!createResp.ok) {

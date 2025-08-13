@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": Deno.env.get("SITE_URL") ?? "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
@@ -59,6 +60,17 @@ serve(async (req) => {
     }
 
     const data = await capResp.json();
+
+    // Attempt to mark our app order as paid via custom_id
+    try {
+      const customId = data?.purchase_units?.[0]?.custom_id as string | undefined;
+      if (customId) {
+        const supabase = createClient(getEnv('SUPABASE_URL'), getEnv('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false }, db: { schema: 'app' } });
+        await supabase.from('orders').update({ paid_at: new Date().toISOString(), status: 'paid' }).eq('id', customId);
+      }
+    } catch (e) {
+      console.error('[paypal-capture-order] db update error', e);
+    }
 
     return new Response(JSON.stringify({ ok: true, data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

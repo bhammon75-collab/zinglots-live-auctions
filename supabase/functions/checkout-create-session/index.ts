@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept-profile",
+  "Access-Control-Allow-Origin": Deno.env.get("SITE_URL") ?? "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
@@ -28,37 +28,57 @@ serve(async (req) => {
     const { data: userData, error: userErr } = await supabaseAuth.auth.getUser(token);
     if (userErr) return new Response(JSON.stringify({ error: userErr.message }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 });
 
-    const { data: order, error: oErr } = await supabaseAdmin.from('orders').select('id, buyer_id, subtotal, fees_bps, shipping_cents').eq('id', orderId).single();
+    const { data: order, error: oErr } = await supabaseAdmin
+      .from('orders')
+      .select('id, buyer_id, subtotal, fees_bps, shipping_cents, shipping_flat_cents, fee_applies_to_shipping')
+      .eq('id', orderId)
+      .single();
     if (oErr) return new Response(JSON.stringify({ error: `Order not found: ${oErr.message}` }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 });
     if (order.buyer_id !== userData.user?.id) return new Response(JSON.stringify({ error: "Forbidden" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
 
-    // Compute total cents and platform fee cents
     const subtotalCents = Math.round(Number(order.subtotal) * 100);
-    const shippingCents = Number(order.shipping_cents || 0);
-    const totalCents = subtotalCents + shippingCents;
-    const envBps = Number(Deno.env.get('STRIPE_PLATFORM_FEE_BPS') || order.fees_bps || 1200);
-    const platformFeeCents = Math.round((totalCents * envBps) / 10000);
+    const snapshotShipping = Number(order.shipping_flat_cents || 0);
+    const legacyShipping = Number(order.shipping_cents || 0);
+    const shippingCents = snapshotShipping > 0 ? snapshotShipping : legacyShipping;
+
+    const feeBps = Number(Deno.env.get('STRIPE_PLATFORM_FEE_BPS') || order.fees_bps || 1200);
+    const feeIncludesShipping = order.fee_applies_to_shipping !== false; // default true
+    const feeBase = subtotalCents + (feeIncludesShipping ? shippingCents : 0);
+    const platformFeeCents = Math.round((feeBase * feeBps) / 10000);
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2023-10-16" });
     const siteUrl = Deno.env.get("SITE_URL") ?? "https://example.com";
 
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: { name: "ZingLots Order" },
+          unit_amount: subtotalCents,
+        },
+        quantity: 1,
+      },
+    ];
+    if (shippingCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: { name: 'Shipping' },
+          unit_amount: shippingCents,
+        },
+        quantity: 1,
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: { name: "ZingLots Order" },
-            unit_amount: totalCents,
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       success_url: successUrl || `${siteUrl}/success?order=${orderId}`,
       cancel_url: cancelUrl || `${siteUrl}/cancel?order=${orderId}`,
       metadata: {
         orderId,
-        totalCents: String(totalCents),
+        subtotalCents: String(subtotalCents),
+        shippingCents: String(shippingCents),
         platformFeeCents: String(platformFeeCents),
       },
       payment_intent_data: {

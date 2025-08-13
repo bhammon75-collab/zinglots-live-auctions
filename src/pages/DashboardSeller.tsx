@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getSupabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/use-toast";
+import ShippingTrackingDialog from "@/components/ShippingTrackingDialog";
 
 interface OrderRow {
   id: string;
@@ -17,11 +18,14 @@ interface OrderRow {
   label_url: string | null;
 }
 
+
 const DashboardSeller = () => {
   const [sellerInfo, setSellerInfo] = useState<{ verified: boolean; hasStripe: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [paidOrders, setPaidOrders] = useState<OrderRow[]>([]);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [trackingOpen, setTrackingOpen] = useState(false);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -122,19 +126,29 @@ const DashboardSeller = () => {
     }
   };
 
-  const createLabel = async (orderId: string) => {
+  const openTracking = (orderId: string) => {
+    setActiveOrderId(orderId);
+    setTrackingOpen(true);
+  };
+
+  const saveTracking = async (values: { carrier: string; tracking_number: string; tracking_url?: string }) => {
     const sb = getSupabase();
-    if (!sb) return;
-    const { error } = await sb.functions.invoke('shipping-create-label', { body: { orderId } });
-    if (!error) {
-      // Refresh list
-      const { data: orders } = await sb
-        .schema('app')
-        .from('orders')
-        .select('id, status, subtotal, fees_bps, shipping_cents, shipping_tracking, shipping_carrier, label_url, lot_id')
-        .eq('status', 'paid');
-      setPaidOrders(((orders as any) || []));
+    if (!sb || !activeOrderId) return;
+    const { error } = await sb.functions.invoke('orders-set-tracking', {
+      body: { order_id: activeOrderId, ...values },
+    });
+    if (error) {
+      toast({ variant: 'destructive', title: 'Tracking update failed', description: error.message });
+      return;
     }
+    toast({ title: 'Tracking saved', description: 'Order marked as shipped.' });
+    // Refresh list
+    const { data: orders } = await sb
+      .schema('app')
+      .from('orders')
+      .select('id, status, subtotal, fees_bps, shipping_cents, shipping_tracking, shipping_carrier, label_url, lot_id')
+      .eq('status', 'paid');
+    setPaidOrders(((orders as any) || []));
   };
 
   const netDue = (o: OrderRow) => {
@@ -196,7 +210,7 @@ const DashboardSeller = () => {
                     ) : null}
                   </div>
                   {!o.shipping_tracking ? (
-                    <Button onClick={() => createLabel(o.id)}>Create Label</Button>
+                    <Button onClick={() => openTracking(o.id)}>Add Tracking</Button>
                   ) : null}
                 </div>
               ))}
@@ -214,6 +228,11 @@ const DashboardSeller = () => {
           </div>
         </aside>
       </main>
+      <ShippingTrackingDialog
+        open={trackingOpen}
+        onOpenChange={setTrackingOpen}
+        onSubmit={saveTracking}
+      />
     </div>
   );
 };
