@@ -1,21 +1,24 @@
 name: ci
 on: [push, pull_request]
+
 jobs:
-  build-test:
+  node:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with:
+          node-version: 20
       - run: npm ci
       - run: node scripts/check-ellipsis.mjs
       - run: npm run test --if-present
       - run: npm run build
+
   deno:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v1
-        with: { deno-version: v1.x }
+        with:
+          deno-version: v1.x
       - run: deno test supabase/functions/bids-csv/tests --allow-read
-
