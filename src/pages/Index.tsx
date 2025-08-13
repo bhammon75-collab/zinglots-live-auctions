@@ -16,7 +16,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>ZingLots | Live Toy Auctions & Shows</title>
-        <meta name="description" content="Bid live on TCG, LEGO, action figures, die-cast, and plush. Follow shows, place soft-close bids, or Buy Now on ZingLots." />
+        <meta name="description" content="The marketplace where collectors buy, sell, and discover rare collectibles. Auction-style bidding, instant Buy Now, and secure checkout." />
         <link rel="canonical" href="/" />
         <meta property="og:title" content="ZingLots | Live Toy Auctions" />
         <meta property="og:description" content="Discover live shows and bid on collectible toys with soft-close and Buy Now." />
@@ -34,24 +34,24 @@ const Index = () => {
           <div className="container mx-auto grid items-center gap-8 px-4 py-12 md:grid-cols-2 md:py-16">
             <div className="relative">
               <SignatureGlow />
-              <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl">Zing your next grail.</h1>
+              <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl">Zing your next find.</h1>
               <p className="mt-3 max-w-prose text-lg text-muted-foreground">
-                Live shows and timed lots for TCG, LEGO, action figures, die-cast, and plush. Soft-close bidding, Buy Now fallback, and secure checkout.
+                The marketplace where collectors buy, sell, and discover rare collectibles. Auction-style bidding, instant Buy Now, and secure checkout.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Button variant="hero" size="xl" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
-                  <Link to="/shows">Browse Live Shows</Link>
+                  <Link to="/discover">Shop Now</Link>
                 </Button>
                 <Button variant="outline" size="lg" asChild>
                   <Link to="/category/tcg">Explore TCG</Link>
                 </Button>
               </div>
               <div className="mt-4 text-sm text-muted-foreground">
-                Next up: <span className="font-medium">{DEMO_SHOWS[0].title}</span> · {DEMO_SHOWS[0].when}
+                Join 50K+ collectors finding deals daily
               </div>
             </div>
             <div className="relative overflow-hidden rounded-xl border shadow-[var(--shadow-elevate)]">
-              <img src={heroImage} alt="ZingLots live toy auctions hero" className="h-full w-full object-cover" />
+              <img src={heroImage} alt="ZingLots marketplace for collectibles hero" className="h-full w-full object-cover" />
             </div>
           </div>
         </section>

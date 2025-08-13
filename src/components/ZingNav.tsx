@@ -1,5 +1,6 @@
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FEATURED_CATEGORIES } from "@/data/categories";
@@ -9,13 +10,20 @@ import { supabase } from "@/integrations/supabase/client";
 const ZingNav = () => {
   const [open, setOpen] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthed(!!session);
+      const meta = session?.user?.user_metadata || session?.user?.app_metadata || {};
+      const roles: string[] | undefined = (meta as any)?.roles || (session?.user?.app_metadata?.roles as any);
+      setIsAdmin(!!((meta as any)?.is_admin || roles?.includes?.("admin")));
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthed(!!session);
+      const meta = session?.user?.user_metadata || session?.user?.app_metadata || {};
+      const roles: string[] | undefined = (meta as any)?.roles || (session?.user?.app_metadata?.roles as any);
+      setIsAdmin(!!((meta as any)?.is_admin || roles?.includes?.("admin")));
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -40,15 +48,20 @@ const ZingNav = () => {
         </div>
 
         <nav className="hidden items-center gap-6 md:flex">
-          <NavLink to="/shows" className="text-sm text-muted-foreground hover:text-foreground">
-            Shows
-          </NavLink>
-          <NavLink to="/live" className="text-sm text-muted-foreground hover:text-foreground">
-            Live
-          </NavLink>
           <NavLink to="/discover" className="text-sm text-muted-foreground hover:text-foreground">
             Discover
           </NavLink>
+          <NavLink to="/shows" className="text-sm text-muted-foreground hover:text-foreground">
+            Shows
+          </NavLink>
+          {(() => {
+            const showDrops = typeof window !== 'undefined' && (isAdmin || new URLSearchParams(window.location.search).get('dev') === '1');
+            return showDrops ? (
+              <NavLink to="/live" className="inline-flex items-center text-sm">
+                <Badge variant="secondary">Drops</Badge>
+              </NavLink>
+            ) : null;
+          })()}
           <div className="flex items-center gap-2">
             {FEATURED_CATEGORIES.map((c) => (
               <NavLink key={c.slug} to={`/category/${c.slug}`} className="text-sm text-muted-foreground hover:text-foreground">
@@ -99,8 +112,15 @@ const ZingNav = () => {
         <div className="border-t bg-background md:hidden">
           <div className="container mx-auto flex flex-col gap-3 px-4 py-4">
             <NavLink to="/shows" onClick={() => setOpen(false)} className="text-sm">Shows</NavLink>
-            <NavLink to="/live" onClick={() => setOpen(false)} className="text-sm">Live</NavLink>
             <NavLink to="/discover" onClick={() => setOpen(false)} className="text-sm">Discover</NavLink>
+            {(() => {
+              const showDrops = typeof window !== 'undefined' && (isAdmin || new URLSearchParams(window.location.search).get('dev') === '1');
+              return showDrops ? (
+                <NavLink to="/live" onClick={() => setOpen(false)} className="text-sm">
+                  <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-xs">Drops</span>
+                </NavLink>
+              ) : null;
+            })()}
             <div className="flex flex-wrap gap-3">
               {FEATURED_CATEGORIES.map((c) => (
                 <Button key={c.slug} variant="pill" size="sm" asChild>

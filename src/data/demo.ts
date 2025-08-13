@@ -18,7 +18,7 @@ export const DEMO_LOTS: LotItem[] = Array.from({ length: 20 }).map((_, i) => {
   const category = cats[i % cats.length];
   return {
     id: `lot-${i + 1}`,
-    title: `${category}: Collector Lot #${1000 + i}`,
+    title: `Vintage ${category} - Near Mint Condition`,
     category,
     currentBid: 1000 + i * 125,
     buyNow: i % 3 === 0 ? 4999 + i * 100 : undefined,
