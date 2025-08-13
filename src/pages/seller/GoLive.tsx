@@ -38,17 +38,18 @@ export default function GoLive() {
       const { url, token } = data as any;
       if (!url || !token) throw new Error('Missing LiveKit credentials');
 
-      const { connect, createLocalVideoTrack, createLocalAudioTrack } = await import('livekit-client');
-      const room = await connect(url, token);
+      const LiveKit = await import('livekit-client');
+      const room = new LiveKit.Room();
+      await room.connect(url, token);
       roomRef.current = room;
-      const cam = await createLocalVideoTrack();
-      const mic = await createLocalAudioTrack();
-      await room.localParticipant.publishTrack(cam);
-      await room.localParticipant.publishTrack(mic);
+      const tracks = await LiveKit.createLocalTracks({ audio: true, video: { facingMode: 'user' } });
+      for (const t of tracks) {
+        await room.localParticipant.publishTrack(t);
+      }
 
-      if (videoRef.current) {
-        const el = await cam.attach();
-        videoRef.current.srcObject = el.srcObject;
+      const videoTrack = tracks.find((t) => (t as any).kind === 'video') as any;
+      if (videoTrack && videoRef.current) {
+        videoTrack.attach(videoRef.current);
         videoRef.current.muted = true;
         await videoRef.current.play().catch(() => {});
       }
