@@ -42,5 +42,3 @@ if (bad.length) {
 } else {
   console.log('No corruption-style ellipses found ✅');
 }
-
-}
