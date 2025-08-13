@@ -56,6 +56,33 @@ export default {
                     blue: 'hsl(var(--brand-blue))',
                     'blue-foreground': 'hsl(var(--brand-blue-foreground))'
                 },
+				zing: {
+					50:  '#FFF3EC',
+					100: '#FFE4D2',
+					200: '#FFC3A3',
+					300: '#FFA26F',
+					400: '#FF8646',
+					500: '#FF6B1A',
+					600: '#E25E14',
+					700: '#B94C12',
+					800: '#8F3C14',
+					900: '#6F2F13',
+				},
+				ink: {
+					50: '#F7F8FA',
+					100:'#EEF0F5',
+					200:'#DADDE8',
+					300:'#B3B9D1',
+					400:'#8B93B3',
+					500:'#5C658B',
+					600:'#424A75',
+					700:'#323A64',
+					800:'#272F53',
+					900:'#1D233D',
+				},
+				success: '#16A34A',
+				warning: '#F59E0B',
+				danger:  '#EF4444',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -70,7 +97,18 @@ export default {
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+				xl: '1rem',
+				'2xl': '1.25rem',
+			},
+			boxShadow: {
+				card: '0 10px 28px rgba(10, 16, 34, 0.12)',
+				glow: '0 0 0 3px rgba(255,107,26,0.25)',
+			},
+			animation: {
+				'accordion-down': 'accordion-down 0.2s ease-out',
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-soft': 'pulse 2s ease-in-out infinite',
 			},
 			keyframes: {
 				'accordion-down': {
@@ -89,10 +127,6 @@ export default {
 						height: '0'
 					}
 				}
-			},
-			animation: {
-				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
 			}
 		}
 	},

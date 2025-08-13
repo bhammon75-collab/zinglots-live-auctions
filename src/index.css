@@ -116,3 +116,24 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Hero gradient background helper */
+.gradient-hero {
+  background:
+    radial-gradient(900px 400px at 10% -10%, rgba(255,107,26,0.12), transparent),
+    linear-gradient(180deg, #0C1124 0%, #121833 100%);
+}
+
+/* Countdown color helpers */
+.time-pill    { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums; }
+.time-ok      { @apply bg-ink-800 text-white; }
+.time-soon    { @apply bg-warning text-black; }
+.time-urgent  { @apply bg-danger text-white; }
+
+/* Focus ring for keyboard users */
+:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,107,26,0.35) !important; border-radius: .5rem; }
+
+/* Keep header clickable above overlays */
+header.sticky { z-index: 9999 !important; pointer-events: auto !important; }
+/* If any hero/overlay spans the page, add class overlay-blocker to it */
+.overlay-blocker { pointer-events: none; }

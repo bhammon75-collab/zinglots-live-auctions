@@ -48,7 +48,7 @@ const handleSignOut = async () => {
 };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 pointer-events-auto">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-0.5">
@@ -63,6 +63,9 @@ const handleSignOut = async () => {
           <nav className="hidden md:flex items-center gap-6">
             <NavLink to="/discover" className="text-sm text-muted-foreground hover:text-foreground">
               Discover
+            </NavLink>
+            <NavLink to="/pricing" className="text-sm text-muted-foreground hover:text-foreground">
+              Pricing
             </NavLink>
             <NavLink to="/help" className="text-sm text-muted-foreground hover:text-foreground">
               Help & Contact
@@ -140,8 +143,9 @@ const handleSignOut = async () => {
       {open && (
         <div className="border-t bg-background md:hidden">
           <div className="container mx-auto flex flex-col gap-3 px-4 py-4">
-            <NavLink to="/help" onClick={() => setOpen(false)} className="text-sm">Help & Contact</NavLink>
             <NavLink to="/discover" onClick={() => setOpen(false)} className="text-sm">Discover</NavLink>
+            <NavLink to="/pricing" onClick={() => setOpen(false)} className="text-sm">Pricing</NavLink>
+            <NavLink to="/help" onClick={() => setOpen(false)} className="text-sm">Help & Contact</NavLink>
             {(() => {
               const showDrops = typeof window !== 'undefined' && (isAdmin || new URLSearchParams(window.location.search).get('dev') === '1');
               return showDrops ? (

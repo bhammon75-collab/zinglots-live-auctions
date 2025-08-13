@@ -23,6 +23,7 @@ import GoLive from "./pages/seller/GoLive";
 import Live from "./pages/Live";
 import SellerApply from "./pages/sellers/Apply";
 import Help from "./pages/Help";
+import PricingPage from "./pages/pricing";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/auction/:lotId" element={<AuctionRoom />} />
               <Route path="/help" element={<Help />} />
+              <Route path="/pricing" element={<PricingPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
