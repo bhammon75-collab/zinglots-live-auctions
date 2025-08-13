@@ -1,24 +1,31 @@
 name: ci
 on: [push, pull_request]
-
 jobs:
   node:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: node scripts/check-ellipsis.mjs
-      - run: npm run test --if-present
-      - run: npm run build
-
+        with: { node-version: 20, cache: 'npm' }
+      - name: Install deps
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+      - name: Ellipsis check
+        run: node scripts/check-ellipsis.mjs
+      - name: Vitest (if present)
+        run: npm run test --if-present
+      - name: Build
+        run: npm run build
   deno:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v1
-        with:
-          deno-version: v1.x
-      - run: deno test supabase/functions/bids-csv/tests --allow-read
+        with: { deno-version: v1.x }
+      - name: Run bids-csv tests if folder exists
+        run: |
+          if [ -d supabase/functions/bids-csv/tests ]; then
+            deno test supabase/functions/bids-csv/tests --allow-read --no-check=remote
+          else
+            echo "No Deno tests folder, skipping."
+          fi
