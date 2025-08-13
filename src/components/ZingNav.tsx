@@ -2,9 +2,9 @@ import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { Menu } from "lucide-react";
+import { Menu, ShoppingCart } from "lucide-react";
 import { useEffect, useState } from "react";
-import { FEATURED_CATEGORIES } from "@/data/categories";
+
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -50,7 +50,7 @@ const handleSignOut = async () => {
             >
               Z
             </div>
-            <span className="text-xl font-extrabold tracking-tight">ingLots</span>
+            <span className="text-xl font-extrabold tracking-tight">ingLots!</span>
           </Link>
         </div>
 
@@ -69,16 +69,12 @@ const handleSignOut = async () => {
               </NavLink>
             ) : null;
           })()}
-          <div className="flex items-center gap-2">
-            {FEATURED_CATEGORIES.map((c) => (
-              <NavLink key={c.slug} to={`/category/${c.slug}`} className="text-sm text-muted-foreground hover:text-foreground">
-                {c.name}
-              </NavLink>
-            ))}
-          </div>
         </nav>
 
 <div className="hidden items-center gap-2 md:flex">
+          <Button variant="ghost" size="icon" asChild aria-label="Cart">
+            <Link to="/cart"><ShoppingCart className="h-5 w-5" /></Link>
+          </Button>
           {isAuthed ? (
             <>
               <span className="hidden lg:inline text-sm text-muted-foreground">Hi, {displayName || 'there'}!</span>
@@ -129,15 +125,6 @@ const handleSignOut = async () => {
                 </NavLink>
               ) : null;
             })()}
-            <div className="flex flex-wrap gap-3">
-              {FEATURED_CATEGORIES.map((c) => (
-                <Button key={c.slug} variant="pill" size="sm" asChild>
-                  <Link to={`/category/${c.slug}`} onClick={() => setOpen(false)}>
-                    {c.name}
-                  </Link>
-                </Button>
-              ))}
-            </div>
 <div className="flex gap-2 pt-2">
               {isAuthed ? (
                 <>
