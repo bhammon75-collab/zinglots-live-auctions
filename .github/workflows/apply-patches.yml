@@ -1,0 +1,50 @@
+name: apply-patches
+on:
+  push:
+    paths:
+      - 'patches/**/*.patch'   # when you add a .patch file, this runs
+  workflow_dispatch:           # manual run button if you want
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find newest patch
+        id: p
+        run: |
+          set -e
+          ls -1t patches/**/*.patch patches/*.patch 2>/dev/null | head -n1 > .patchfile || true
+          if [ ! -s .patchfile ]; then
+            echo "No patch found" >&2
+            exit 1
+          fi
+          echo "file=$(cat .patchfile)" >> $GITHUB_OUTPUT
+
+      - name: Create branch and apply
+        run: |
+          set -e
+          BR="patch-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BR"
+          git config user.name "patch-bot"
+          git config user.email "patch-bot@users.noreply.github.com"
+          git apply --whitespace=fix --ignore-space-change "${{ steps.p.outputs.file }}"
+          git add -A
+          git commit -m "Apply patch: $(basename "${{ steps.p.outputs.file }}")"
+          git push origin "$BR"
+
+      - name: Open PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: ${{ github.ref_name }} # not used, but required by action inputs
+          base: main
+          title: "Apply patch: ${{ steps.p.outputs.file }}"
+          body: |
+            Applied patch `${{ steps.p.outputs.file }}`.
+          labels: bot, patch
+          author: patch-bot <patch-bot@users.noreply.github.com>
+          committer: patch-bot <patch-bot@users.noreply.github.com>
+          branch-suffix: timestamp
