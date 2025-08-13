@@ -1,7 +1,8 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Menu } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Menu, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FEATURED_CATEGORIES } from "@/data/categories";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,32 +12,46 @@ const ZingNav = () => {
   const [open, setOpen] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [term, setTerm] = useState("");
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthed(!!session);
-      const meta = session?.user?.user_metadata || session?.user?.app_metadata || {};
-      const roles: string[] | undefined = (meta as any)?.roles || (session?.user?.app_metadata?.roles as any);
-      setIsAdmin(!!((meta as any)?.is_admin || roles?.includes?.("admin")));
-    });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthed(!!session);
-      const meta = session?.user?.user_metadata || session?.user?.app_metadata || {};
-      const roles: string[] | undefined = (meta as any)?.roles || (session?.user?.app_metadata?.roles as any);
-      setIsAdmin(!!((meta as any)?.is_admin || roles?.includes?.("admin")));
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+useEffect(() => {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    setIsAuthed(!!session);
+    const meta = session?.user?.user_metadata || session?.user?.app_metadata || {};
+    const roles: string[] | undefined = (meta as any)?.roles || (session?.user?.app_metadata?.roles as any);
+    setIsAdmin(!!((meta as any)?.is_admin || roles?.includes?.("admin")));
+    const name = (meta as any)?.full_name || (meta as any)?.first_name || (meta as any)?.name || session?.user?.email?.split("@")[0] || null;
+    setDisplayName(name);
+  });
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    setIsAuthed(!!session);
+    const meta = session?.user?.user_metadata || session?.user?.app_metadata || {};
+    const roles: string[] | undefined = (meta as any)?.roles || (session?.user?.app_metadata?.roles as any);
+    setIsAdmin(!!((meta as any)?.is_admin || roles?.includes?.("admin")));
+    const name = (meta as any)?.full_name || (meta as any)?.first_name || (meta as any)?.name || session?.user?.email?.split("@")[0] || null;
+    setDisplayName(name);
+  });
+  return () => subscription.unsubscribe();
+}, []);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
+const handleSearchSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  const q = term.trim();
+  navigate(`/discover${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+  setOpen(false);
+};
+
+const handleSignOut = async () => {
+  await supabase.auth.signOut();
+};
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-1">
+          <Link to="/" className="flex items-center gap-0.5">
             <div
               className="h-10 w-10 rounded-md shadow-[var(--shadow-glow)] flex items-center justify-center font-extrabold text-2xl leading-none"
               style={{ backgroundColor: "hsl(var(--brand-blue))", color: "hsl(var(--brand-blue-foreground))" }}
@@ -46,6 +61,19 @@ const ZingNav = () => {
             <span className="text-xl font-extrabold tracking-tight">ingLots</span>
           </Link>
         </div>
+        <form onSubmit={handleSearchSubmit} className="hidden md:flex items-center gap-2 mx-4 flex-1 max-w-xl">
+          <div className="relative w-full">
+            <Input
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+              placeholder="Search for anything"
+              aria-label="Search"
+              className="pl-9"
+            />
+            <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          </div>
+          <Button type="submit" className="bg-brand-blue text-brand-blue-foreground">Search</Button>
+        </form>
 
         <nav className="hidden items-center gap-6 md:flex">
           <NavLink to="/discover" className="text-sm text-muted-foreground hover:text-foreground">
@@ -53,6 +81,9 @@ const ZingNav = () => {
           </NavLink>
           <NavLink to="/shows" className="text-sm text-muted-foreground hover:text-foreground">
             Shows
+          </NavLink>
+          <NavLink to="/help" className="text-sm text-muted-foreground hover:text-foreground">
+            Help & Contact
           </NavLink>
           {(() => {
             const showDrops = typeof window !== 'undefined' && (isAdmin || new URLSearchParams(window.location.search).get('dev') === '1');
@@ -74,6 +105,7 @@ const ZingNav = () => {
 <div className="hidden items-center gap-2 md:flex">
           {isAuthed ? (
             <>
+              <span className="hidden lg:inline text-sm text-muted-foreground">Hi, {displayName || 'there'}!</span>
               <Button variant="ghost" asChild>
                 <Link to="/dashboard/buyer">Dashboard</Link>
               </Button>
@@ -111,8 +143,13 @@ const ZingNav = () => {
       {open && (
         <div className="border-t bg-background md:hidden">
           <div className="container mx-auto flex flex-col gap-3 px-4 py-4">
+            <form onSubmit={handleSearchSubmit} className="flex gap-2">
+              <Input value={term} onChange={(e)=>setTerm(e.target.value)} placeholder="Search for anything" aria-label="Search" />
+              <Button type="submit" className="bg-brand-blue text-brand-blue-foreground">Search</Button>
+            </form>
             <NavLink to="/shows" onClick={() => setOpen(false)} className="text-sm">Shows</NavLink>
             <NavLink to="/discover" onClick={() => setOpen(false)} className="text-sm">Discover</NavLink>
+            <NavLink to="/help" onClick={() => setOpen(false)} className="text-sm">Help & Contact</NavLink>
             {(() => {
               const showDrops = typeof window !== 'undefined' && (isAdmin || new URLSearchParams(window.location.search).get('dev') === '1');
               return showDrops ? (

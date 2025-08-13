@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CATEGORIES } from "@/data/categories";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 const Discover = () => {
   const [q, setQ] = useState("");
@@ -14,6 +14,7 @@ const Discover = () => {
   const [min, setMin] = useState("");
   const [max, setMax] = useState("");
   const [view, setView] = useState<"all" | "new" | "ending" | "priceDrops">("all");
+  const [searchParams] = useSearchParams();
 
   const filtered = useMemo(() => {
     const toCents = (v: string) => (v ? Math.round(parseFloat(v) * 100) : undefined);
@@ -36,13 +37,17 @@ const Discover = () => {
     });
   }, [q, category, min, max, view]);
 
-  const [recent, setRecent] = useState<string[]>([]);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("recently_viewed");
-      setRecent(raw ? JSON.parse(raw) : []);
-    } catch {}
-  }, []);
+const [recent, setRecent] = useState<string[]>([]);
+useEffect(() => {
+  try {
+    const qp = searchParams.get("q") || "";
+    setQ(qp);
+  } catch {}
+  try {
+    const raw = localStorage.getItem("recently_viewed");
+    setRecent(raw ? JSON.parse(raw) : []);
+  } catch {}
+}, [searchParams]);
 
   const recentLots = useMemo(() => DEMO_LOTS.filter((l) => recent.includes(l.id)), [recent]);
 
