@@ -25,7 +25,7 @@ export function useLotRealtime(lotId: string, _auctionId?: string) {
     ;(async () => {
       const { data: lot } = await sb.schema('app')
         .from('lots')
-        .select('status, ends_at, /* reserve_met */ winner_id')
+        .select('status, ends_at, reserve_met, winner_id')
         .eq('id', lotId)
         .maybeSingle()
 
