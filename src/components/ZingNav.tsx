@@ -64,6 +64,9 @@ const ZingNav = () => {
               <Button variant="ghost" asChild>
                 <Link to="/dashboard/buyer">Dashboard</Link>
               </Button>
+              <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
+                <Link to="/dashboard/seller">Sell now</Link>
+              </Button>
               <Button variant="secondary" onClick={handleSignOut}>
                 Sign out
               </Button>
@@ -112,6 +115,9 @@ const ZingNav = () => {
                 <>
                   <Button variant="ghost" asChild>
                     <Link to="/dashboard/buyer" onClick={() => setOpen(false)}>Dashboard</Link>
+                  </Button>
+                  <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
+                    <Link to="/dashboard/seller" onClick={() => setOpen(false)}>Sell now</Link>
                   </Button>
                   <Button variant="secondary" onClick={() => { handleSignOut(); setOpen(false); }}>
                     Sign out
