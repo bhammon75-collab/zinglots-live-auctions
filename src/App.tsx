@@ -24,6 +24,7 @@ import Live from "./pages/Live";
 import SellerApply from "./pages/sellers/Apply";
 import Help from "./pages/Help";
 import PricingPage from "./pages/pricing";
+import ExplorePage from "./pages/explore";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/shows" element={<Shows />} />
               <Route path="/live" element={<Live />} />
               <Route path="/discover" element={<Discover />} />
+              <Route path="/explore" element={<ExplorePage />} />
               <Route path="/category/:slug" element={<Category />} />
               <Route path="/seller/:id" element={<SellerProfile />} />
               <Route path="/seller/apply" element={<SellerApply />} />

@@ -38,43 +38,52 @@ const Index = () => {
         <PayPalSmokeTest />
       </>)}
 
-      <main>
-        {/* Hero */}
-        <section className="relative">
-          <div className="container mx-auto grid items-center gap-8 px-4 py-12 md:grid-cols-2 md:py-16">
-            <div className="relative">
-              <SignatureGlow />
-              <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl">Zing your next find.</h1>
-              <p className="mt-3 max-w-prose text-lg text-muted-foreground">
-                The marketplace where collectors buy, sell, and discover rare collectibles. Auction-style bidding, instant Buy Now, and secure checkout.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Button variant="hero" size="xl" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
-                  <Link to="/discover">Shop Now</Link>
-                </Button>
-                <Button variant="outline" size="lg" asChild>
-                  <Link to="/category/tcg">Explore TCG</Link>
-                </Button>
-              </div>
-              <div className="mt-4 text-sm text-muted-foreground">
-                Join 50K+ collectors finding deals daily
-              </div>
-              <form onSubmit={handleSearchSubmit} className="mt-4 flex w-full max-w-xl gap-2">
-                <div className="relative flex-1">
-                  <Input
-                    value={term}
-                    onChange={(e) => setTerm(e.target.value)}
-                    placeholder="Search for anything"
-                    aria-label="Search"
-                    className="pl-10 bg-card text-foreground shadow-[var(--shadow-elevate)]"
-                  />
-                  <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                </div>
-                <Button type="submit" className="bg-brand-blue text-brand-blue-foreground">Search</Button>
-              </form>
+      <main className="min-h-screen">
+        {/* Hero section with auction focus */}
+        <section className="gradient-hero text-white">
+          <div className="container mx-auto px-4 py-16 md:py-24">
+            <h1 className="text-4xl md:text-5xl font-bold leading-tight max-w-3xl">
+              Bid. Win. Save.
+            </h1>
+            <p className="mt-4 text-lg text-white/80 max-w-2xl">
+              Real auctions with proxy bidding, anti-snipe soft-close, and secure checkout. Built for power sellers & savvy buyers.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild className="bg-zing-500 hover:bg-zing-600 text-white rounded-xl">
+                <Link to="/discover">Browse auctions</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-xl border-white/40 text-white hover:bg-white/10">
+                <Link to="/discover?endingWithin=1hour">Ending soon</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-xl border-white/40 text-white hover:bg-white/10">
+                <Link to="/dashboard/seller">Sell now</Link>
+              </Button>
             </div>
-            <div className="relative overflow-hidden rounded-xl border shadow-[var(--shadow-elevate)]">
-              <img src={heroImage} alt="ZingLots marketplace for collectibles hero" className="h-full w-full object-cover" />
+            <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-4 text-white/80">
+              <div>✅ Proxy bidding</div>
+              <div>⏱ Soft-close (+2:00)</div>
+              <div>🛡️ Escrow on high-value</div>
+              <div>✔️ Verified sellers</div>
+            </div>
+            
+            {/* Search bar moved under hero text */}
+            <div className="mt-12 max-w-2xl">
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search for collectibles..."
+                  value={term}
+                  onChange={(e) => setTerm(e.target.value)}
+                  className="w-full h-14 pl-4 pr-12 text-lg bg-white text-black border-0 rounded-xl"
+                />
+                <Button 
+                  type="submit" 
+                  size="icon" 
+                  className="absolute right-2 top-2 bg-zing-500 hover:bg-zing-600 rounded-lg"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+              </form>
             </div>
           </div>
         </section>
