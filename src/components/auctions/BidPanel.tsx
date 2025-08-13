@@ -137,7 +137,13 @@ export default function BidPanel({ lot, auction, userTier, isSeller, isAdmin }: 
         max: max2,
       });
       if (error) {
+        const code = (error as any).code || '';
         const msg = error.message || 'Bid failed';
+        // Rate limit guard from DB
+        if (code === 'RLT01' || /RLT01|rate limit|too many bids/i.test(msg)) {
+          toast({ description: "You're bidding too fast—please wait a few seconds." });
+          return;
+        }
         const m = msg.match(/Bid must be [≥>=]\s*\$?(\d+(?:\.\d+)?)/i) || msg.match(/Minimum acceptable is\s*\$?(\d+(?:\.\d+)?)/i);
         if (m) {
           toast({ description: `Minimum acceptable is ${formatUSD(Number(m[1]))}` });
