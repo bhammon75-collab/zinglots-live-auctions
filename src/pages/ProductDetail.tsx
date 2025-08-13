@@ -1,10 +1,21 @@
 import { Helmet } from "react-helmet-async";
 import ZingNav from "@/components/ZingNav";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { DEMO_LOTS } from "@/data/demo";
 import lotImage from "@/assets/lot-generic.jpg";
 import { Button } from "@/components/ui/button";
 import BidPanel from "@/components/auctions/BidPanel";
+import { getSupabase } from "@/lib/supabaseClient";
+
+interface LotRow {
+  id: string;
+  show_id: string;
+  title: string;
+  category: string;
+  start_price: number;
+  ends_at: string | null;
+  winner_id: string | null;
+}
 
 const Evidence = () => (
   <section aria-labelledby="evidence" className="rounded-lg border bg-card p-4">
@@ -27,60 +38,89 @@ const Evidence = () => (
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const lot = DEMO_LOTS.find((l) => l.id === id) ?? DEMO_LOTS[0];
+  const [lot, setLot] = useState<LotRow | null>(null);
+  const [topBid, setTopBid] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const minutes = parseInt(String(lot.endsIn).replace(/[^0-9]/g, '')) || 30;
-  const endsAt = new Date(Date.now() + minutes * 60000).toISOString();
+  useEffect(() => {
+    const run = async () => {
+      const sb = getSupabase();
+      if (!sb || !id) return;
+      setLoading(true);
+      const { data: row } = await sb.schema('app').from('lots')
+        .select('id, show_id, title, category, start_price, ends_at, winner_id')
+        .eq('id', id)
+        .maybeSingle();
+      if (row) setLot(row as any);
 
-  const bidPanelLot = {
-    id: lot.id,
-    auction_id: 'demo-auction',
-    title: lot.title,
-    starting_bid: Number((lot.currentBid / 100).toFixed(2)),
-    current_price: Number((lot.currentBid / 100).toFixed(2)),
-    reserve_met: false,
-    high_bidder: null as string | null,
-  };
+      const { data: bids } = await sb.schema('app').from('bids')
+        .select('amount')
+        .eq('lot_id', id)
+        .order('amount', { ascending: false })
+        .limit(1);
+      setTopBid(bids && bids.length ? Number(bids[0].amount) : null);
+      setLoading(false);
+    };
+    run();
+  }, [id]);
 
-  const bidPanelAuction = {
-    id: 'demo-auction',
-    ends_at: endsAt,
-    soft_close_secs: 120,
-  };
+  const bidPanelLot = useMemo(() => {
+    if (!lot) return null;
+    return {
+      id: lot.id,
+      auction_id: lot.show_id,
+      title: lot.title,
+      starting_bid: Number(lot.start_price ?? 0),
+      current_price: topBid ?? Number(lot.start_price ?? 0),
+      reserve_met: false,
+      high_bidder: lot.winner_id ?? null,
+    };
+  }, [lot, topBid]);
 
-  const userTier = { tier: 0 as 0|1|2, cap: 200 };
-  const isSeller = false;
+  const bidPanelAuction = useMemo(() => {
+    if (!lot) return null;
+    return {
+      id: lot.show_id,
+      ends_at: lot.ends_at,
+      soft_close_secs: 120,
+    };
+  }, [lot]);
 
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>{lot.title} | ZingLots</title>
-        <meta name="description" content={`Bid on ${lot.title} on ZingLots. Soft-close bidding and Buy Now available.`} />
-        <link rel="canonical" href={`/product/${lot.id}`} />
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Product",
-          name: lot.title,
-          offers: {
-            "@type": "Offer",
-            priceCurrency: "USD",
-            price: (lot.currentBid/100).toFixed(2),
-            availability: "https://schema.org/InStock",
-          },
-        })}</script>
+        <title>{lot ? `${lot.title} | ZingLots` : 'Lot | ZingLots'}</title>
+        <meta name="description" content={lot ? `Bid on ${lot.title} on ZingLots. Soft-close bidding and Buy Now available.` : 'ZingLots lot'} />
+        {id && <link rel="canonical" href={`/product/${id}`} />}
+        {lot && (
+          <script type="application/ld+json">{JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: lot.title,
+            offers: {
+              "@type": "Offer",
+              priceCurrency: "USD",
+              price: (topBid ?? Number(lot.start_price ?? 0)).toFixed(2),
+              availability: "https://schema.org/InStock",
+            },
+          })}</script>
+        )}
       </Helmet>
       <ZingNav />
       <main className="container mx-auto grid gap-8 px-4 py-10 md:grid-cols-2">
         <div className="overflow-hidden rounded-xl border">
-          <img src={lotImage} alt={`${lot.title} primary photo`} className="w-full object-cover" />
+          <img src={lotImage} alt={lot ? `${lot.title} primary photo` : 'Lot photo'} className="w-full object-cover" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">{lot.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Category: {lot.category}</p>
+          <h1 className="text-3xl font-bold">{lot ? lot.title : 'Lot not found'}</h1>
+          {lot && <p className="mt-1 text-sm text-muted-foreground">Category: {lot.category}</p>}
           <div className="mt-6">
-            <BidPanel lot={bidPanelLot} auction={bidPanelAuction} userTier={userTier} isSeller={isSeller} isAdmin={false} />
+            {bidPanelLot && bidPanelAuction ? (
+              <BidPanel lot={bidPanelLot as any} auction={bidPanelAuction as any} userTier={{ tier: 0, cap: 200 }} isSeller={false} isAdmin={false} />
+            ) : (
+              !loading && <div className="text-muted-foreground">This lot could not be found.</div>
+            )}
           </div>
-
 
           <div className="mt-8 space-y-6">
             <Evidence />
