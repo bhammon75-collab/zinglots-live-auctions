@@ -1,0 +1,45 @@
+diff --git a/src/components/ZingNav.tsx b/src/components/ZingNav.tsx
+--- a/src/components/ZingNav.tsx
++++ b/src/components/ZingNav.tsx
+@@ -1,7 +1,7 @@
+-<header className="sticky top-0 z-40 w-full border bg-background/80 backdrop-blur">
++<header className="sticky top-0 z-50 w-full border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 pointer-events-auto">
+   {/* ... existing header content ... */}
+ </header>
+ 
+@@ -0,0 +1,20 @@
++{/* Ensure dropdown items navigate reliably (Radix can swallow clicks onSelect) */}
++{/* Buyer Dashboard */}
++<DropdownMenuItem
++  asChild
++  onSelect={(e) => e.preventDefault()}
++>
++  <Link to="/dashboard/buyer">Buyer Dashboard</Link>
++  {/* keep icon/text if you have them */}
++</DropdownMenuItem>
++
++{/* Help & Contact */}
++<DropdownMenuItem
++  asChild
++  onSelect={(e) => e.preventDefault()}
++>
++  <Link to="/help">Help & Contact</Link>
++  {/* keep icon/text if you have them */}
++</DropdownMenuItem>
++
++{/* If you have a Seller Dashboard item, add the same onSelect={(e)=>e.preventDefault()} */}
+diff --git a/src/index.css b/src/index.css
+--- a/src/index.css
++++ b/src/index.css
+@@ -1,3 +1,13 @@
+ /* your existing styles */
++
++/* --- Hardening: keep header clickable above any overlays --- */
++/* Many sections use absolute/overlay elements; this guarantees the banner wins pointer events */
++header.sticky {
++  z-index: 9999 !important;          /* beats Tailwind z-40/50 if needed */
++  pointer-events: auto !important;   /* header still captures clicks */
++}
++
++/* If you know a hero/overlay that spans the page, make it non-blocking */
++.overlay-blocker { pointer-events: none; }
