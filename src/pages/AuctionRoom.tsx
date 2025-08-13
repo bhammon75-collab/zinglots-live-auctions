@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import ZingNav from "@/components/ZingNav";
-import LiveLotTicker from "@/components/LiveLotTicker";
+import LiveLotTicker from "@/components/auctions/LiveLotTicker";
 import BidTicker, { type TickerBid } from "@/components/BidTicker";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,8 +17,8 @@ export default function AuctionRoom() {
   const { participants, count } = usePresence(`auction:${lotId}`);
 
   const [desired, setDesired] = useState<number | null>(null);
+  const [startingBid, setStartingBid] = useState<number>(0);
   const sb = getSupabase();
-
   useEffect(() => {
     if (topBid != null && desired == null) {
       setDesired(Number(topBid) + 1);
@@ -38,6 +38,18 @@ export default function AuctionRoom() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [topBid]);
+
+  // Fetch starting bid for fallback pricing
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!sb || !lotId) return;
+      const { data } = await sb.from('lots').select('starting_bid').eq('id', lotId).maybeSingle();
+      if (!active) return;
+      setStartingBid(Number((data as any)?.starting_bid ?? 0));
+    })();
+    return () => { active = false; };
+  }, [sb, lotId]);
 
   const placeBid = async () => {
     if (!sb) return toast({ description: "Supabase not configured" });
@@ -89,7 +101,7 @@ export default function AuctionRoom() {
             )}
           </article>
 
-          {lotId && <LiveLotTicker lotId={lotId} />}
+          {lotId && <LiveLotTicker lotId={lotId} startingBid={startingBid} className="mt-2" />}
 
           <section className="rounded-lg border bg-card p-4">
             <h2 className="mb-3 text-sm font-medium">Quick Bid</h2>

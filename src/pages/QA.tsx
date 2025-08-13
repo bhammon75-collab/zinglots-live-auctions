@@ -1,14 +1,27 @@
 import { Helmet } from "react-helmet-async";
 import ZingNav from "@/components/ZingNav";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { getSupabase } from "@/lib/supabaseClient";
-import LiveLotTicker from "@/components/LiveLotTicker";
+import LiveLotTicker from "@/components/auctions/LiveLotTicker";
 
 const QA = () => {
   const [lotId, setLotId] = useState("");
   const [showId, setShowId] = useState("");
+  const [startingBid, setStartingBid] = useState(0);
+  // Fetch starting bid when lot changes
+  useEffect(() => {
+    const sb = getSupabase();
+    let active = true;
+    (async () => {
+      if (!sb || !lotId) return;
+      const { data } = await sb.from('lots').select('starting_bid').eq('id', lotId).maybeSingle();
+      if (!active) return;
+      setStartingBid(Number((data as any)?.starting_bid ?? 0));
+    })();
+    return () => { active = false; };
+  }, [lotId]);
 
   const placeSampleBid = async () => {
     const sb = getSupabase();
@@ -53,7 +66,7 @@ const QA = () => {
             <input className="rounded-md border bg-background px-3 py-2" placeholder="Lot ID" value={lotId} onChange={(e) => setLotId(e.target.value)} />
             <input className="rounded-md border bg-background px-3 py-2" placeholder="Show ID" value={showId} onChange={(e) => setShowId(e.target.value)} />
           </div>
-          {lotId && <LiveLotTicker lotId={lotId} />}
+          {lotId && <LiveLotTicker lotId={lotId} startingBid={startingBid} />}
           <div className="flex gap-3">
             <Button onClick={placeSampleBid}>Place Sample Bid ($12.34)</Button>
             <Button variant="outline" onClick={shortenSoftClose}>Shorten Soft-Close (20s)</Button>

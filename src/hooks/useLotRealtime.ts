@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
 
-type LotStatus = 'draft'|'running'|'live'|'ended'|'settling'|'settled'
+import type { LotStatus } from '@/types/auction'
 interface State {
   status?: LotStatus
   endsAt?: string | null
