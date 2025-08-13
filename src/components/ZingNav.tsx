@@ -14,12 +14,12 @@ const ZingNav = () => {
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2">
             <div
-              className="h-8 w-8 rounded-md shadow-[var(--shadow-glow)] flex items-center justify-center font-extrabold text-xl leading-none"
+              className="h-10 w-10 rounded-md shadow-[var(--shadow-glow)] flex items-center justify-center font-extrabold text-2xl leading-none"
               style={{ backgroundColor: "hsl(var(--brand-blue))", color: "hsl(var(--brand-blue-foreground))" }}
             >
               Z
             </div>
-            <span className="text-lg font-extrabold tracking-tight">ingLots</span>
+            <span className="text-xl font-extrabold tracking-tight">ingLots</span>
           </Link>
         </div>
 
