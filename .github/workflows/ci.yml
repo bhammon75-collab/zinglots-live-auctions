@@ -285,9 +285,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [audit, test, test-deno, build, smoke-tests]
     if: failure()
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
     steps:
       - name: Send Slack notification
-        if: secrets.SLACK_WEBHOOK_URL != ''
+        if: env.SLACK_WEBHOOK_URL != ''
         uses: 8398a7/action-slack@v3
         with:
           status: failure
@@ -298,7 +303,7 @@ jobs:
         continue-on-error: true
 
       - name: Send email notification
-        if: secrets.NOTIFICATION_EMAIL != '' && secrets.SMTP_USERNAME != ''
+        if: env.NOTIFICATION_EMAIL != '' && env.SMTP_USERNAME != ''
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -330,9 +335,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [audit, test, test-deno, build, smoke-tests]
     if: success() && github.ref == 'refs/heads/main'
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     steps:
       - name: Send success notification
-        if: secrets.SLACK_WEBHOOK_URL != ''
+        if: env.SLACK_WEBHOOK_URL != ''
         uses: 8398a7/action-slack@v3
         with:
           status: success
