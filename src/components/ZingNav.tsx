@@ -81,28 +81,28 @@ const handleSignOut = async () => {
         <div className="hidden items-center gap-2 md:flex">
           {isAuthed ? (
             <>
+              <Button variant="ghost" size="icon" asChild aria-label="Cart">
+                <Link to="/cart"><ShoppingCart className="h-5 w-5" /></Link>
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="hidden lg:inline">
+                  <Button variant="ghost">
                     Hi, {displayName || 'there'}!
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Account</DropdownMenuLabel>
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
                     <Link to="/dashboard/buyer">Buyer Dashboard</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
                     <Link to="/dashboard/seller">Seller Dashboard</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>Sign out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              <Button variant="ghost" size="icon" asChild aria-label="Cart">
-                <Link to="/cart"><ShoppingCart className="h-5 w-5" /></Link>
-              </Button>
 
               <Button variant="hero" size="sm" className="bg-none bg-brand-blue text-brand-blue-foreground" asChild>
                 <Link to="/dashboard/seller">Sell now</Link>
@@ -150,7 +150,7 @@ const handleSignOut = async () => {
                 </NavLink>
               ) : null;
             })()}
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-2 flex-wrap">
               {isAuthed ? (
                 <>
                   <Button variant="ghost" asChild>
