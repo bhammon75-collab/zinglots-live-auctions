@@ -20,6 +20,8 @@ import QA from "./pages/QA";
 import Login from "./pages/Login";
 import AuctionRoom from "./pages/AuctionRoom";
 import GoLive from "./pages/seller/GoLive";
+import Live from "./pages/Live";
+import SellerApply from "./pages/sellers/Apply";
 
 const queryClient = new QueryClient();
 
@@ -34,9 +36,11 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/shows" element={<Shows />} />
+              <Route path="/live" element={<Live />} />
               <Route path="/discover" element={<Discover />} />
               <Route path="/category/:slug" element={<Category />} />
               <Route path="/seller/:id" element={<SellerProfile />} />
+              <Route path="/seller/apply" element={<SellerApply />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<CartInvoice />} />
               <Route path="/dashboard/buyer" element={<DashboardBuyer />} />
